@@ -26,13 +26,12 @@ export function Hero() {
   const cardY = useTransform(p, [0, 0.55], [0, -100]);
   const cardO = useTransform(p, [0.08, 0.5], [1, 0]);
   const cardS = useTransform(p, [0, 0.55], [1, 0.92]);
-  const bars = useTransform(p, [0.22, 0.55], [0, 1]);
   const titleO = useTransform(p, [0.48, 0.64, 0.86, 0.97], [0, 1, 1, 0]);
   const titleY = useTransform(p, [0.48, 0.64], [28, 0]);
   const curtain = useTransform(p, [0.9, 1], [0, 1]);
 
   return (
-    <div ref={track} className="relative lg:motion-safe:h-[220vh]">
+    <div ref={track} data-film-open data-scene="Tonight in Karachi" className="relative lg:motion-safe:h-[220vh]">
     <section className="hero-section relative isolate flex min-h-[100svh] items-center overflow-hidden pb-[clamp(110px,20vh,200px)] pt-28 lg:motion-safe:sticky lg:motion-safe:top-0 lg:motion-safe:h-[100svh]">
       <NightSky camera={cinema ? p : undefined} />
 
@@ -94,9 +93,6 @@ export function Hero() {
 
       {cinema && (
         <>
-          {/* cinema bars slide in as the camera pushes into the city */}
-          <motion.div aria-hidden style={{ scaleY: bars }} className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[11vh] origin-top bg-[#05050f]" />
-          <motion.div aria-hidden style={{ scaleY: bars }} className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[11vh] origin-bottom bg-[#05050f]" />
 
           {/* title card */}
           <motion.div
@@ -111,7 +107,7 @@ export function Hero() {
           </motion.div>
 
           {/* fade to the next scene */}
-          <motion.div aria-hidden style={{ opacity: curtain }} className="pointer-events-none absolute inset-0 z-40 bg-[#100f2e]" />
+          <motion.div aria-hidden style={{ opacity: curtain }} className="pointer-events-none absolute inset-0 z-40 bg-[#05050f]" />
         </>
       )}
     </section>

@@ -1,3 +1,4 @@
+import { CinemaFrame } from "@/components/home/CinemaFrame";
 import { Hero } from "@/components/home/Hero";
 import { IntroFilm } from "@/components/home/IntroFilm";
 import { Trailer } from "@/components/home/Trailer";
@@ -11,14 +12,15 @@ import { StarDust } from "@/components/scene/StarDust";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#100f2e]">
+    <div className="film-home min-h-screen bg-[#05050f]">
       <IntroFilm />
       <div className="film-grain" aria-hidden />
       <SiteNav />
+      <CinemaFrame />
       <main>
         <Hero />
         <Trailer />
-        <div className="relative bg-[linear-gradient(180deg,#100f2e_0%,#16173f_45%,#14133a_100%)]">
+        <div className="relative bg-[linear-gradient(180deg,#05050f_0%,#100f2e_12%,#16173f_50%,#14133a_100%)]">
           <Atmosphere />
           <StarDust count={110} />
           <HowItWorks />

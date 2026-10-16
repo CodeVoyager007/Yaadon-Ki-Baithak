@@ -40,7 +40,9 @@ export function Promise() {
         };
 
   return (
-    <section id="promise" className="relative scroll-mt-24 px-5 py-28">
+    <section id="promise" data-film-end className="relative scroll-mt-24 px-5 py-28 lg:motion-safe:pt-[16vh]">
+      {/* fades up out of the film's last black frame */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 hidden h-[30vh] bg-gradient-to-b from-[#05050f] to-transparent lg:motion-safe:block" />
       <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[1fr_1fr] lg:items-center">
         <div>
           <p className="font-urdu mb-3 text-2xl leading-[2] text-lantern-soft" dir="rtl" lang="ur" style={{ textAlign: "left" }}>

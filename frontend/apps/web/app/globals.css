@@ -270,3 +270,34 @@ body {
 }
 .shelf::-webkit-scrollbar { display: none; }
 .shelf > * { scroll-snap-align: start; }
+
+/*
+ * The home-page film frame (components/home/CinemaFrame.tsx). One letterbox
+ * for every scene, driven by --cine (0 = house lights on, 1 = film playing).
+ */
+:root { --cine: 0; --film-black: #05050f; }
+.cine-bar {
+  position: absolute;
+  inset-inline: 0;
+  height: 10vh;
+  background: var(--film-black);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 1.75rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 244, 220, 0.5);
+  will-change: transform;
+}
+.cine-bar-top { top: 0; justify-content: flex-end; transform: translateY(calc((var(--cine) - 1) * 100%)); }
+.cine-bar-bottom { bottom: 0; transform: translateY(calc((1 - var(--cine)) * 100%)); }
+.cine-shot { font-variant-numeric: tabular-nums; font-weight: 700; color: rgba(255, 244, 220, 0.55); }
+.cine-scene { font-family: var(--font-display), serif; font-style: italic; font-size: 1rem; color: rgba(255, 244, 220, 0.6); }
+.cine-hint { opacity: 0.6; }
+.site-nav {
+  transform: translateY(calc(var(--cine) * -170%));
+  opacity: calc(1 - var(--cine) * 1.4);
+}
+/* the home page sits on film black, so any frame not painted yet shows black, not navy */
+body:has(.film-home) { background: var(--film-black); }

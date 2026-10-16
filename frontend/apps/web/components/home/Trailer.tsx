@@ -3,6 +3,7 @@
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { useRef, useState } from "react";
 import { useSound } from "@/components/sound/SoundProvider";
+import { SceneDip } from "./SceneDip";
 import dholki from "@/components/illustrations/trailer/dholki.jpg";
 import eid from "@/components/illustrations/trailer/eid.jpg";
 import listen from "@/components/illustrations/trailer/listen.jpg";
@@ -26,7 +27,7 @@ export function Trailer() {
   const track = useRef<HTMLElement>(null);
   const { scrollYProgress: p } = useScroll({ target: track, offset: ["start start", "end end"] });
   const { sfx } = useSound();
-  const [cut, setCut] = useState(-1);
+  const [cut, setCut] = useState(-1); // drives the whoosh on each new shot
   useMotionValueEvent(p, "change", (v) => {
     const next = v <= 0 ? -1 : Math.min(N - 1, Math.floor(v * N * 0.999));
     if (next !== cut) {
@@ -37,7 +38,7 @@ export function Trailer() {
 
   if (reduce) {
     return (
-      <section aria-label="Stories worth keeping" className="space-y-2 bg-black">
+      <section aria-label="Stories worth keeping" className="space-y-2 bg-[#05050f]">
         {CUTS.map((c) => (
           <figure key={c.en} className="relative h-[60vh]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -55,19 +56,12 @@ export function Trailer() {
   }
 
   return (
-    <section ref={track} aria-label="Stories worth keeping" className="relative bg-black" style={{ height: `${N * 90 + 60}vh` }}>
+    <section ref={track} data-scene="Stories worth keeping" data-shots={N} aria-label="Stories worth keeping" className="relative bg-[#05050f]" style={{ height: `${N * 90 + 60}vh` }}>
       <div className="sticky top-0 h-[100svh] overflow-hidden">
         {CUTS.map((c, i) => (
           <Cut key={c.en} index={i} p={p} {...c} />
         ))}
-        {/* letterbox */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[9vh] bg-black" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[9vh] bg-black" />
-        {/* shot counter in the letterbox */}
-        <p className="font-pixel absolute bottom-[3vh] left-6 z-40 text-sm text-moon/50">
-          {String(Math.max(0, cut) + 1).padStart(2, "0")} / {String(N).padStart(2, "0")}
-        </p>
-        <p className="absolute bottom-[3vh] right-6 z-40 text-sm text-moon/40">Keep scrolling</p>
+        <SceneDip p={p} target={track} />
       </div>
     </section>
   );
