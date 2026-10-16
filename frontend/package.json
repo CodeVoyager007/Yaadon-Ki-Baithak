@@ -1,0 +1,14 @@
+{
+  "name": "yaadon-ki-baithak",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @baithak/web",
+    "build": "npm run build -w @baithak/web",
+    "start": "npm run start -w @baithak/web",
+    "typecheck": "npm run typecheck -w @baithak/web"
+  }
+}
