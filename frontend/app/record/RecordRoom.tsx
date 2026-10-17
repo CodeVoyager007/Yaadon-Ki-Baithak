@@ -19,7 +19,7 @@ import { listChapters, saveSession, type Session, type Turn } from "@/lib/chapte
 import { THEMES } from "@/lib/themes";
 import { useRecorder } from "@/lib/use-recorder";
 
-type Phase = "loading" | "consent" | "session" | "done";
+type Phase = "loading" | "consent" | "session" | "done" | "not-found";
 type Question = { ur: string; en: string };
 
 /**
@@ -41,10 +41,15 @@ export function RecordRoom() {
 
   useEffect(() => {
     const b = loadBook();
-    const e = b ? (b.elders.find((x) => x.id === params.get("elder")) ?? b.elders[0] ?? null) : null;
+    const elderParam = params.get("elder");
+    const e = b ? (b.elders.find((x) => x.id === elderParam) ?? (elderParam ? null : b.elders[0] ?? null)) : null;
     setBook(b);
     setElder(e);
-    setPhase(e && !e.consentAt ? "consent" : "session");
+    if (elderParam && !e) {
+      setPhase("not-found");
+    } else {
+      setPhase(e && !e.consentAt ? "consent" : "session");
+    }
   }, [params]);
 
   const live = Boolean(book && elder);
@@ -64,11 +69,23 @@ export function RecordRoom() {
   /** The interviewer flagged the last answer as painful: Hudhud stays gentle until the next answer starts. */
   const [gentle, setGentle] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [recordingConsent, setRecordingConsent] = useState(false);
+  const [typedAnswer, setTypedAnswer] = useState("");
   /** Every decision this sitting, for Hudhud's notebook. */
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const session = useRef<Session | null>(null);
 
   useEffect(() => setQuestion(themeInfo.firstQuestion), [themeInfo]);
+
+  useEffect(() => {
+    if (phase === "consent") {
+      const notice =
+        lang === "ur"
+          ? "یہ سروس گوگل کے مفت اے آئی پر چلتی ہے، اور گوگل اپنی مصنوعات کو بہتر بنانے کے لیے یہ ریکارڈنگز استعمال کر سکتا ہے۔"
+          : "This service uses Google's free AI, and Google may use recordings to improve its products.";
+      void speak(notice, lang);
+    }
+  }, [phase, lang]);
 
   function ensureSession() {
     if (session.current) return session.current;
@@ -91,14 +108,53 @@ export function RecordRoom() {
 
   const answers = live ? (session.current?.turns.filter((t) => t.role === "elder").length ?? 0) : 0;
 
-  function giveConsent() {
+  async function giveConsent() {
     if (!elder) return;
-    const consentAt = new Date().toISOString();
-    updateElder(elder.id, { consentAt });
-    setElder({ ...elder, consentAt });
-    chirp();
-    setPhase("session");
-    void speak(question[lang], lang);
+    if (recordingConsent) {
+      const take = await rec.stop();
+      const consentAt = new Date().toISOString();
+      let consentClipId: string | undefined;
+      if (take?.blob) {
+        consentClipId = newId();
+        await putClip(consentClipId, take.blob).catch(() => {});
+      }
+      updateElder(elder.id, { consentAt, consentClipId });
+      setElder({ ...elder, consentAt, consentClipId });
+      setRecordingConsent(false);
+      chirp();
+      setPhase("session");
+      void speak(question[lang], lang);
+      return;
+    }
+
+    setRecordingConsent(true);
+    const started = await rec.start();
+    if (!started) {
+      const consentAt = new Date().toISOString();
+      updateElder(elder.id, { consentAt });
+      setElder({ ...elder, consentAt });
+      setRecordingConsent(false);
+      chirp();
+      setPhase("session");
+      void speak(question[lang], lang);
+      return;
+    }
+
+    window.setTimeout(async () => {
+      const take = await rec.stop();
+      const consentAt = new Date().toISOString();
+      let consentClipId: string | undefined;
+      if (take?.blob) {
+        consentClipId = newId();
+        await putClip(consentClipId, take.blob).catch(() => {});
+      }
+      updateElder(elder.id, { consentAt, consentClipId });
+      setElder({ ...elder, consentAt, consentClipId });
+      setRecordingConsent(false);
+      chirp();
+      setPhase("session");
+      void speak(question[lang], lang);
+    }, 3500);
   }
 
   async function nextQuestion(skipped: boolean) {
@@ -188,6 +244,22 @@ export function RecordRoom() {
       <main className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-5 pb-16 pt-8 text-center">
         {phase === "loading" && <PixelLantern size={56} className="mt-24" />}
 
+        {phase === "not-found" && (
+          <div className="glass-night mt-10 flex max-w-md flex-col items-center gap-4 rounded-[32px] px-8 py-12 text-center">
+            <Birdy mood="idle" size={100} />
+            <p className="font-urdu text-2xl leading-[2] text-lantern-soft" dir="rtl" lang="ur">
+              ہمیں یہ بزرگ نہیں ملے۔
+            </p>
+            <p className="font-display text-xl">We couldn&apos;t find this story session.</p>
+            <p className="text-sm text-moon/70">
+              You can return to the home page or open your family book.
+            </p>
+            <Link href="/" className="btn-lantern pixel-corners mt-2 inline-flex h-12 items-center px-6 font-extrabold">
+              Back to home
+            </Link>
+          </div>
+        )}
+
         {phase === "consent" && elder && (
           <div className="glass-night mt-6 flex max-w-xl flex-col items-center gap-5 rounded-[32px] px-7 py-10 sm:px-10">
             <Birdy mood="happy" size={110} />
@@ -197,17 +269,35 @@ export function RecordRoom() {
             <p className="font-display text-xl leading-snug sm:text-2xl">
               Your voice will be recorded and kept only for your family. You can stop any time.
             </p>
+            <div className="w-full rounded-2xl bg-white/5 p-4 text-center">
+              <p className="font-urdu text-xl leading-[2] text-lantern-soft sm:text-2xl sm:leading-[2.1]" dir="rtl" lang="ur">
+                یہ سروس گوگل کے مفت اے آئی پر چلتی ہے، اور گوگل اپنی مصنوعات کو بہتر بنانے کے لیے یہ ریکارڈنگز استعمال کر سکتا ہے۔
+              </p>
+              <p className="font-display mt-2 text-lg leading-snug text-moon sm:text-xl">
+                This service uses Google&apos;s free AI, and Google may use recordings to improve its products.
+              </p>
+            </div>
             <p className="max-w-md text-sm text-moon/65">
               Nothing is shared unless your family chooses to share it, and they can delete any recording.
             </p>
-            <div className="mt-2 grid w-full gap-3 sm:grid-cols-2">
-              <button type="button" onClick={giveConsent} className="btn-lantern pixel-corners flex min-h-[72px] flex-col items-center justify-center px-5 py-2">
-                <span className="font-urdu text-xl leading-[1.8]" dir="rtl" lang="ur">جی ہاں، شروع کریں</span>
-                <span className="text-sm font-extrabold">Yes, let&apos;s begin</span>
+            <div className="mt-2 flex w-full flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={giveConsent}
+                className={`btn-lantern pixel-corners flex min-h-[76px] w-full max-w-md flex-col items-center justify-center px-6 py-3 transition ${
+                  recordingConsent ? "ring-4 ring-lantern-soft animate-pulse" : ""
+                }`}
+              >
+                <span className="font-urdu text-2xl leading-[1.8]" dir="rtl" lang="ur">
+                  {recordingConsent ? "کہیں: ہاں، ٹھیک ہے..." : "ہاں، ٹھیک ہے"}
+                </span>
+                <span className="text-base font-extrabold">
+                  {recordingConsent ? "Say 'Haan, theek hai' (Listening...)" : "Haan, theek hai"}
+                </span>
               </button>
-              <Link href="/book" className="glass-night flex min-h-[72px] flex-col items-center justify-center rounded-[20px] px-5 py-2 hover:bg-white/15">
-                <span className="font-urdu text-xl leading-[1.8]" dir="rtl" lang="ur">ابھی نہیں</span>
-                <span className="text-sm font-bold text-moon/80">Not now</span>
+              <Link href="/book" className="text-sm font-bold text-moon/60 hover:text-moon underline underline-offset-4">
+                <span className="font-urdu mr-1.5" dir="rtl" lang="ur">ابھی نہیں</span>
+                <span>(Not now)</span>
               </Link>
             </div>
           </div>
@@ -261,11 +351,38 @@ export function RecordRoom() {
             )}
 
             {(rec.status === "denied" || rec.status === "unsupported") && (
-              <p className="glass-night mt-4 max-w-md rounded-2xl px-5 py-3 text-moon/90">
-                {rec.status === "denied"
-                  ? "The microphone is blocked. Click the lock icon next to the address bar, allow the microphone, then tap the lamp again."
-                  : "This browser can't record audio. Try Chrome or Edge on a phone or laptop."}
-              </p>
+              <div className="glass-night mt-4 w-full max-w-md rounded-2xl p-5 text-left text-moon/90">
+                <p className="text-sm">
+                  {rec.status === "denied"
+                    ? "The microphone is blocked. You can type their answer below, or click the lock icon next to the address bar to allow the microphone."
+                    : "This browser can't record audio directly. You can type their answer below instead."}
+                </p>
+                <div className="mt-3">
+                  <textarea
+                    value={typedAnswer}
+                    onChange={(e) => setTypedAnswer(e.target.value)}
+                    placeholder={lang === "ur" ? "یہاں جواب لکھیں..." : "Type their answer here..."}
+                    dir="auto"
+                    rows={3}
+                    className="w-full rounded-xl border border-white/15 bg-white/5 p-3 text-moon placeholder:text-moon/40 focus:border-lantern focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={!typedAnswer.trim() || thinking}
+                    onClick={async () => {
+                      if (!typedAnswer.trim()) return;
+                      const text = typedAnswer.trim();
+                      setTypedAnswer("");
+                      ensureSession();
+                      addTurn({ role: "elder", text, lang, at: new Date().toISOString() });
+                      await nextQuestion(false);
+                    }}
+                    className="btn-lantern pixel-corners mt-2 inline-flex h-10 items-center px-5 text-sm font-bold disabled:opacity-50"
+                  >
+                    Save answer and continue
+                  </button>
+                </div>
+              </div>
             )}
 
             <div className="mt-10 grid w-full max-w-lg grid-cols-3 gap-3">

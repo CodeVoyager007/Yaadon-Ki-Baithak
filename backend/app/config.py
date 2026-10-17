@@ -10,6 +10,15 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+    load_dotenv()
+except Exception:
+    pass
 
 
 def _env(name: str, default: str = "") -> str:
@@ -46,7 +55,20 @@ class Settings:
 
     @property
     def has_gemini(self) -> bool:
-        return bool(self.gemini_key)
+        return bool(self.gemini_key or _env("GEMINI_API_KEYS"))
+
+    @property
+    def gemini_keys(self) -> tuple[str, ...]:
+        keys = []
+        raw_multi = _env("GEMINI_API_KEYS")
+        if raw_multi:
+            keys.extend([k.strip() for k in raw_multi.split(",") if k.strip()])
+        if self.gemini_key and self.gemini_key not in keys:
+            keys.insert(0, self.gemini_key)
+        fallback = _env("GEMINI_API_KEY_FALLBACK")
+        if fallback and fallback not in keys:
+            keys.append(fallback)
+        return tuple(keys)
 
     @property
     def has_cloudflare(self) -> bool:

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Sparkles, Trash2 } from "lucide-react";
 import { AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BookNav } from "@/components/app/BookNav";
 import { BirdySays } from "@/components/app/SpeechBubble";
 import { ChapterView } from "@/components/app/ChapterView";
 import { PixelLantern } from "@/components/effects/PixelLantern";
+import { illustrateOnly } from "@/lib/api";
 import { deleteClips } from "@/lib/audio-store";
 import { getElder, loadBook, type Elder } from "@/lib/book-store";
 import { removeChapterRemote } from "@/lib/data/remote";
@@ -22,6 +23,36 @@ export default function ChapterPage() {
   const [elder, setElder] = useState<Elder | null>(null);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [painting, setPainting] = useState(false);
+  const [paintNote, setPaintNote] = useState<string | null>(null);
+
+  async function handleNewPicture() {
+    if (!stored || painting) return;
+    setPainting(true);
+    setPaintNote(null);
+    try {
+      const seed = Math.floor(Math.random() * 1000000);
+      const res = await illustrateOnly(stored.chapter, seed);
+      if (res.imageUrl) {
+        const next: StoredChapter = { ...stored, imageUrl: res.imageUrl };
+        saveChapter(next);
+        setStored(next);
+        setPaintNote("Hudhud painted a new picture for this chapter!");
+      } else {
+        const next: StoredChapter = { ...stored, imageUrl: undefined };
+        saveChapter(next);
+        setStored(next);
+        setPaintNote("The painter is taking a rest right now. Hudhud kept the theme picture.");
+      }
+    } catch {
+      const next: StoredChapter = { ...stored, imageUrl: undefined };
+      saveChapter(next);
+      setStored(next);
+      setPaintNote("The painter is taking a rest right now. Hudhud kept the theme picture.");
+    } finally {
+      setPainting(false);
+    }
+  }
 
   useEffect(() => {
     const c = getChapter(id);
@@ -70,18 +101,45 @@ export default function ChapterPage() {
       <AppBackdrop />
       <AppHeader back={{ href: "/book", label: "Family book" }}>
         {!editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15"
-          >
-            <Pencil size={15} />
-            <span className="hidden sm:inline">Edit</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleNewPicture}
+              disabled={painting}
+              className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15 disabled:opacity-50"
+            >
+              <Sparkles size={15} className={painting ? "animate-spin text-lantern" : "text-lantern-soft"} />
+              <span>{painting ? "Painting..." : "New picture"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15"
+            >
+              <Pencil size={15} />
+              <span className="hidden sm:inline">Edit</span>
+            </button>
+          </div>
         )}
       </AppHeader>
 
       <main className="mx-auto max-w-5xl px-5 pb-24 pt-8">
+        {paintNote && (
+          <div className="glass-night mb-6 flex items-center justify-between rounded-2xl px-5 py-3 text-sm text-moon/90">
+            <p>{paintNote}</p>
+            <button type="button" onClick={() => setPaintNote(null)} className="ml-3 text-xs text-moon/60 hover:text-moon">
+              ✕
+            </button>
+          </div>
+        )}
+
+        {painting && (
+          <div className="glass-night mb-6 flex items-center justify-center gap-3 rounded-2xl p-4 text-moon/90">
+            <PixelLantern size={28} />
+            <span className="font-display">Hudhud is painting a new scene...</span>
+          </div>
+        )}
+
         {editing ? (
           <EditChapter
             stored={stored}

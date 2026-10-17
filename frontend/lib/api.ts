@@ -144,6 +144,16 @@ export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn
   return { chapter: transcriptDraft(elder, theme, turns), imageUrl: undefined, trace: [] as TraceStep[], source: "stand-in" as Source };
 }
 
+/** POST /api/illustrate  { chapter, familySeed } -> { imageUrl?, trace }: re-runs illustration only. */
+export async function illustrateOnly(chapter: Chapter, familySeed: number): Promise<{ imageUrl?: string | null; trace?: TraceStep[] }> {
+  const ai = await post<{ imageUrl?: string | null; trace: TraceStep[] }>("/api/illustrate", {
+    chapter,
+    familySeed,
+  });
+  if (ai) return { imageUrl: ai.imageUrl, trace: ai.trace };
+  return { imageUrl: null };
+}
+
 /** Stand-in chapter: the elder's own words, in order, nothing added. */
 function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
   const answers = turns.filter((t) => t.role === "elder" && t.text.trim());

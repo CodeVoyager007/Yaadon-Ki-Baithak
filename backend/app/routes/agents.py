@@ -8,10 +8,10 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Request
 
-from agents import Orchestrator
+from agents import Chapter, Orchestrator
 
 from ..config import settings
-from ..errors import not_configured, provider_failed
+from ..errors import ApiError, not_configured, provider_failed
 from ..inputs import clean_elder, clean_seed, clean_theme, clean_turns, read_json
 from ..painting import painter_for
 from ..providers import gemini
@@ -79,4 +79,25 @@ async def chapter(request: Request):
         "chapter": out.chapter.model_dump(by_alias=True, exclude_none=True),
         "imageUrl": out.image_url,
         "trace": [t.model_dump(by_alias=True) for t in out.trace],
+    }
+
+
+@router.post("/illustrate")
+async def illustrate(request: Request):
+    """Body: { chapter, familySeed } -> { imageUrl?, trace }.
+    Re-runs only the illustration for a chapter."""
+    caller = await require_caller(request, "illustrate")
+    body = await read_json(request)
+    chap_dict = body.get("chapter")
+    if not isinstance(chap_dict, dict):
+        raise ApiError(400, "Missing chapter")
+    try:
+        chap = Chapter.model_validate(chap_dict)
+    except Exception:
+        raise ApiError(400, "Invalid chapter")
+    family_seed = clean_seed(body.get("familySeed"))
+    out_url, trace = await _orchestrator(caller.user_id).paint_chapter(chap, family_seed)
+    return {
+        "imageUrl": out_url,
+        "trace": [t.model_dump(by_alias=True) for t in trace],
     }

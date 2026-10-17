@@ -18,7 +18,7 @@ export function HomeHero() {
         alt=""
         aria-hidden
         fetchPriority="high"
-        className="absolute inset-x-0 bottom-0 h-[36vh] w-full object-cover object-bottom opacity-80 [mask-image:linear-gradient(to_top,black_50%,transparent)]"
+        className="absolute inset-x-0 bottom-0 h-[42vh] w-full object-cover object-bottom opacity-100 [mask-image:linear-gradient(to_top,black_78%,transparent_100%)]"
       />
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#2b2d5c] to-transparent" />
 
@@ -43,9 +43,12 @@ export function HomeHero() {
         </div>
         <Diary />
       </div>
-      <SkyLantern delay={0.5} duration={11} className="bottom-[6vh] right-[10vw]" />
-      <SkyLantern delay={3.2} duration={13} className="bottom-[3vh] right-[34vw]" />
-      <SkyLantern delay={6.5} duration={12} className="bottom-[8vh] right-[62vw]" />
+      {/* Flying Sky Lanterns on both sides */}
+      <SkyLantern delay={0.5} duration={11} className="bottom-[6vh] right-[8vw]" />
+      <SkyLantern delay={1.8} duration={13} className="bottom-[4vh] left-[6vw]" />
+      <SkyLantern delay={3.2} duration={13} className="bottom-[3vh] right-[24vw]" />
+      <SkyLantern delay={4.6} duration={12} className="bottom-[7vh] left-[18vw]" />
+      <SkyLantern delay={6.5} duration={12} className="bottom-[8vh] right-[54vw]" />
     </section>
   );
 }

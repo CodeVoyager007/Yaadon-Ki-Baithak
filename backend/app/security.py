@@ -26,6 +26,7 @@ LIMITS = {
     "transcribe": 30,
     "tts": 30,
     "chapter": 6,
+    "illustrate": 6,
     "share": 60,
 }
 

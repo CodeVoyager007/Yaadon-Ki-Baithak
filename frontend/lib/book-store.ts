@@ -17,8 +17,11 @@ export type Elder = {
   language: Language;
   birthplace?: string;
   birthYear?: string;
+  photo?: string;
   /** When the elder agreed to be recorded (M1). Recording never starts without it. */
   consentAt?: string;
+  /** Audio clip id of spoken consent, saved in local audio store */
+  consentClipId?: string;
 };
 
 export type FamilyBook = {

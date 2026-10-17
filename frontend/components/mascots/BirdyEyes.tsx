@@ -48,8 +48,12 @@ export function BirdyEyes({ take, look = "open", onPop }: { take: number; look?:
   // Rest position whenever the look changes (gentle mood lowers the lids).
   useEffect(() => {
     if (!scope.current) return;
-    void animate(".lid-top", { y: lids.top }, { duration: reduce ? 0 : 0.6, ease: "easeInOut" });
-    void animate(".lid-bottom", { y: lids.bottom }, { duration: reduce ? 0 : 0.6, ease: "easeInOut" });
+    try {
+      void animate(".lid-top", { y: lids.top }, { duration: reduce ? 0 : 0.6, ease: "easeInOut" });
+      void animate(".lid-bottom", { y: lids.bottom }, { duration: reduce ? 0 : 0.6, ease: "easeInOut" });
+    } catch {
+      /* ignore unmounted */
+    }
   }, [lids.top, lids.bottom, animate, reduce, scope]);
 
   // The double take. One requested while he's off screen waits until he's seen.
@@ -60,31 +64,39 @@ export function BirdyEyes({ take, look = "open", onPop }: { take: number; look?:
     busy.current = true;
     const rest = lidsRef.current;
     const run = async () => {
-      // 1. notice: a quick squint
-      await Promise.all([
-        animate(".lid-top", { y: SQUINT.top }, { duration: 0.09, ease: "easeIn" }),
-        animate(".lid-bottom", { y: SQUINT.bottom }, { duration: 0.09, ease: "easeIn" }),
-      ]);
-      // 2. pop: lids fly open, ring opens wider than the pupil, glint grows, sparkle twinkles
-      onPop?.();
-      // A fixed-length spring: bouncy, but finishes on time (an open-ended one lingers).
-      const spring = { type: "spring", duration: 0.3, bounce: 0.5 } as const;
-      await Promise.all([
-        animate(".lid-top", { y: OPEN.top }, { duration: 0.12 }),
-        animate(".lid-bottom", { y: OPEN.bottom }, { duration: 0.12 }),
-        animate(".ring", { scale: 1.7 }, spring),
-        animate(".pupil", { scale: 1.32 }, spring),
-        animate(".glint", { scale: 1.45 }, spring),
-        animate(".sparkle", { scale: [0, 1.2, 1], opacity: [0, 1, 1] }, { duration: 0.32 }),
-      ]);
-      // 3. hold the stare, then settle back
-      await new Promise((r) => setTimeout(r, 160));
-      await Promise.all([
-        animate(".ring, .pupil, .glint", { scale: 1 }, { duration: 0.26, ease: "easeOut" }),
-        animate(".sparkle", { scale: 0, opacity: 0 }, { duration: 0.25 }),
-        animate(".lid-top", { y: rest.top }, { duration: 0.26 }),
-        animate(".lid-bottom", { y: rest.bottom }, { duration: 0.26 }),
-      ]);
+      try {
+        if (!scope.current) return;
+        // 1. notice: a quick squint
+        await Promise.all([
+          animate(".lid-top", { y: SQUINT.top }, { duration: 0.09, ease: "easeIn" }),
+          animate(".lid-bottom", { y: SQUINT.bottom }, { duration: 0.09, ease: "easeIn" }),
+        ]);
+        if (!scope.current) return;
+        // 2. pop: lids fly open, ring opens wider than the pupil, glint grows, sparkle twinkles
+        onPop?.();
+        // A fixed-length spring: bouncy, but finishes on time (an open-ended one lingers).
+        const spring = { type: "spring", duration: 0.3, bounce: 0.5 } as const;
+        await Promise.all([
+          animate(".lid-top", { y: OPEN.top }, { duration: 0.12 }),
+          animate(".lid-bottom", { y: OPEN.bottom }, { duration: 0.12 }),
+          animate(".ring", { scale: 1.7 }, spring),
+          animate(".pupil", { scale: 1.32 }, spring),
+          animate(".glint", { scale: 1.45 }, spring),
+          animate(".sparkle", { scale: [0, 1.2, 1], opacity: [0, 1, 1] }, { duration: 0.32 }),
+        ]);
+        if (!scope.current) return;
+        // 3. hold the stare, then settle back
+        await new Promise((r) => setTimeout(r, 160));
+        if (!scope.current) return;
+        await Promise.all([
+          animate(".ring, .pupil, .glint", { scale: 1 }, { duration: 0.26, ease: "easeOut" }),
+          animate(".sparkle", { scale: 0, opacity: 0 }, { duration: 0.25 }),
+          animate(".lid-top", { y: rest.top }, { duration: 0.26 }),
+          animate(".lid-bottom", { y: rest.bottom }, { duration: 0.26 }),
+        ]);
+      } catch {
+        /* scope unmounted during animation */
+      }
     };
     run().finally(() => {
       busy.current = false;
@@ -95,22 +107,35 @@ export function BirdyEyes({ take, look = "open", onPop }: { take: number; look?:
   useEffect(() => {
     if (reduce || !inView) return;
     let timer = 0;
+    let active = true;
     const blink = async () => {
+      if (!active) return;
       if (!busy.current && scope.current) {
         const rest = lidsRef.current;
-        await Promise.all([
-          animate(".lid-top", { y: SHUT.top }, { duration: 0.07, ease: "easeIn" }),
-          animate(".lid-bottom", { y: SHUT.bottom }, { duration: 0.07, ease: "easeIn" }),
-        ]);
-        await Promise.all([
-          animate(".lid-top", { y: rest.top }, { duration: 0.13, ease: "easeOut" }),
-          animate(".lid-bottom", { y: rest.bottom }, { duration: 0.13, ease: "easeOut" }),
-        ]);
+        try {
+          if (!scope.current || !active) return;
+          await Promise.all([
+            animate(".lid-top", { y: SHUT.top }, { duration: 0.07, ease: "easeIn" }),
+            animate(".lid-bottom", { y: SHUT.bottom }, { duration: 0.07, ease: "easeIn" }),
+          ]);
+          if (!scope.current || !active) return;
+          await Promise.all([
+            animate(".lid-top", { y: rest.top }, { duration: 0.13, ease: "easeOut" }),
+            animate(".lid-bottom", { y: rest.bottom }, { duration: 0.13, ease: "easeOut" }),
+          ]);
+        } catch {
+          return;
+        }
       }
-      timer = window.setTimeout(blink, 2800 + Math.random() * 3200);
+      if (active) {
+        timer = window.setTimeout(blink, 2800 + Math.random() * 3200);
+      }
     };
     timer = window.setTimeout(blink, 1200 + Math.random() * 2000);
-    return () => window.clearTimeout(timer);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
   }, [inView, reduce, animate, scope]);
 
   const center = { transformOrigin: "50px 50px" };

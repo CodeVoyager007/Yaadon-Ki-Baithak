@@ -10,7 +10,6 @@ import dholki from "@/components/illustrations/trailer/dholki.jpg";
 import listen from "@/components/illustrations/trailer/listen.jpg";
 import river from "@/components/illustrations/trailer/river.jpg";
 import train from "@/components/illustrations/trailer/train.jpg";
-import skyline from "@/components/scene/karachi-skyline.jpg";
 
 type Shot = { img?: string; ur: string; en: string; ms: number; sound: "whoosh" | "boom" | null };
 
@@ -76,7 +75,7 @@ export function IntroFilm() {
     if (reduce) return;
     const play = () => {
       // warm the images while the visitor reads the gate
-      [...SHOTS.map((s) => s.img), skyline.src].forEach((src) => {
+      SHOTS.map((s) => s.img).forEach((src) => {
         if (src) new Image().src = src;
       });
       setPhase("gate");
@@ -320,12 +319,12 @@ function ShotText({ ur, en, big }: { ur: string; en: string; big: boolean }) {
 function Title() {
   return (
     <motion.div className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-      <motion.img
-        src={skyline.src}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover object-bottom"
-        initial={{ scale: 1.25, filter: "brightness(0.2)" }}
-        animate={{ scale: 1.05, filter: "brightness(0.65)" }}
+      {/* Night gradient instead of a second skyline: the title carries the screen. */}
+      <motion.div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_100%,rgba(236,120,76,0.4)_0%,rgba(74,51,102,0.35)_40%,#030308_78%)]"
+        initial={{ opacity: 0.35, scale: 1.1 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 3.4, ease: [0.16, 1, 0.3, 1] }}
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/25 to-black/60" />

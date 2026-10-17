@@ -20,18 +20,25 @@ TIMEOUT_S = 30.0
 
 
 async def _generate(model: str, body: dict[str, Any]) -> dict[str, Any]:
-    key = settings().gemini_key
-    if not key:
+    keys = settings().gemini_keys or ((settings().gemini_key,) if settings().gemini_key else ())
+    if not keys:
         raise RuntimeError("GEMINI_API_KEY is missing")
-    res = await client().post(
-        f"{BASE}/{model}:generateContent",
-        headers={"x-goog-api-key": key},
-        json=body,
-        timeout=TIMEOUT_S,
-    )
-    if res.status_code != 200:
-        raise RuntimeError(f"Gemini answered {res.status_code}")
-    return res.json()
+    last_err: Exception | None = None
+    for key in keys:
+        try:
+            res = await client().post(
+                f"{BASE}/{model}:generateContent",
+                headers={"x-goog-api-key": key},
+                json=body,
+                timeout=TIMEOUT_S,
+            )
+            if res.status_code == 200:
+                return res.json()
+            last_err = RuntimeError(f"Gemini answered {res.status_code}")
+        except Exception as err:
+            last_err = err
+            continue
+    raise last_err or RuntimeError("Gemini failed on all keys")
 
 
 def _parts(reply: dict[str, Any]) -> list[dict[str, Any]]:

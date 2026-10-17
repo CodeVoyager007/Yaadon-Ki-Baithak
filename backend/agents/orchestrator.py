@@ -106,6 +106,12 @@ class Orchestrator:
         image_url = await self._paint(chapter, family_seed, trace)
         return ChapterOutcome(chapter, image_url, trace)
 
+    async def paint_chapter(self, chapter: Chapter, family_seed: int) -> tuple[Optional[str], list[TraceStep]]:
+        """Re-run only the illustration for an existing chapter."""
+        trace: list[TraceStep] = []
+        image_url = await self._paint(chapter, family_seed, trace)
+        return image_url, trace
+
     async def _paint(self, chapter: Chapter, family_seed: int, trace: list[TraceStep]) -> Optional[str]:
         if not self.painter:
             trace.append(TraceStep(agent="orchestrator", outcome="illustrator not configured; theme picture used"))

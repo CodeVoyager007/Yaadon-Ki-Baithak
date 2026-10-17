@@ -169,9 +169,14 @@ export default function BookPage() {
 function ElderRow({ elder, count }: { elder: Elder; count: number }) {
   return (
     <li className="flex items-center gap-4 rounded-2xl bg-white/5 p-3">
-      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-terracotta/20 font-display text-2xl text-terracotta">
-        {elder.name.slice(0, 1).toUpperCase()}
-      </span>
+      {elder.photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={elder.photo} alt={elderLabel(elder)} className="h-14 w-14 shrink-0 rounded-full border border-white/20 object-cover" />
+      ) : (
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-terracotta/20 font-display text-2xl text-terracotta">
+          {elder.name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="block font-bold text-moon">{elderLabel(elder)}</span>
         <span className="block truncate text-sm text-moon/70">
