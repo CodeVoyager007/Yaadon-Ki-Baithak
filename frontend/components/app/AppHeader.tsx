@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { AccountButton } from "@/components/nav/AccountButton";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 
 /** Top bar inside the app: wordmark, optional way back, sound, and any extra actions. */
@@ -18,6 +19,7 @@ export function AppHeader({ back, children }: { back?: { href: string; label: st
       </div>
       <div className="flex items-center gap-2">
         <SoundToggle tone="night" />
+        <AccountButton tone="night" />
         {children}
       </div>
     </header>

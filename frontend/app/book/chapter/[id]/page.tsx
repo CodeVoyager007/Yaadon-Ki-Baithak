@@ -6,11 +6,13 @@ import { useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
+import { BookNav } from "@/components/app/BookNav";
 import { BirdySays } from "@/components/app/SpeechBubble";
 import { ChapterView } from "@/components/app/ChapterView";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { deleteClips } from "@/lib/audio-store";
-import { getElder, type Elder } from "@/lib/book-store";
+import { getElder, loadBook, type Elder } from "@/lib/book-store";
+import { removeChapterRemote } from "@/lib/data/remote";
 import { deleteChapter, getChapter, saveChapter, type StoredChapter } from "@/lib/chapter-store";
 
 export default function ChapterPage() {
@@ -32,6 +34,7 @@ export default function ChapterPage() {
       <div className="grid min-h-[100svh] place-items-center">
         <AppBackdrop />
         <PixelLantern size={56} />
+        <BookNav />
       </div>
     );
   }
@@ -47,13 +50,17 @@ export default function ChapterPage() {
             Back to the family book
           </Link>
         </main>
+        <BookNav />
       </div>
     );
   }
 
   async function remove() {
     if (!stored) return;
+    // Local, then let the family's own token clear the cloud copy too
+    // (chapter, session, turns and the voice clips in the private bucket).
     deleteChapter(stored.id);
+    void removeChapterRemote(stored, loadBook()?.id);
     await deleteClips(stored.turns.map((t) => t.clipId).filter((x): x is string => Boolean(x)));
     router.push("/book");
   }
@@ -116,6 +123,7 @@ export default function ChapterPage() {
           </div>
         )}
       </main>
+      <BookNav />
     </div>
   );
 }

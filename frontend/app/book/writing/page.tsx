@@ -6,6 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
+import { BookNav } from "@/components/app/BookNav";
 import { BirdySays } from "@/components/app/SpeechBubble";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { writeAndIllustrate } from "@/lib/api";
@@ -181,6 +182,7 @@ function Writing() {
           </Link>
         )}
       </main>
+      <BookNav />
     </div>
   );
 }

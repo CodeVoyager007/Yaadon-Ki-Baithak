@@ -52,6 +52,7 @@ const SESSIONS = "baithak-sessions";
 const CHAPTERS = "baithak-chapters";
 
 function read<T>(key: string): T[] {
+  if (typeof window === "undefined") return [];
   try {
     return JSON.parse(localStorage.getItem(key) ?? "[]") as T[];
   } catch {
@@ -59,6 +60,7 @@ function read<T>(key: string): T[] {
   }
 }
 function write<T>(key: string, list: T[]) {
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify(list));
   } catch {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import skyline from "@/components/scene/karachi-skyline.jpg";
+import { SkyLantern } from "@/components/effects/SkyLantern";
 import { Diary } from "./Diary";
 import { ElderButton } from "./ElderButton";
 
@@ -42,6 +43,9 @@ export function HomeHero() {
         </div>
         <Diary />
       </div>
+      <SkyLantern delay={0.5} duration={11} className="bottom-[6vh] right-[10vw]" />
+      <SkyLantern delay={3.2} duration={13} className="bottom-[3vh] right-[34vw]" />
+      <SkyLantern delay={6.5} duration={12} className="bottom-[8vh] right-[62vw]" />
     </section>
   );
 }

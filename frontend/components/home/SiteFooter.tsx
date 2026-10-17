@@ -8,7 +8,7 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <Wordmark />
         <p className="text-sm text-moon/60">
-          Made by Ayesha, Faria and Humema for the NYLP AI Hackathon 2026.
+          Made by Humema Israr, Ayesha and Faria for the NYLP AI Hackathon 2026.
         </p>
         <ReplayIntro />
         <p className="font-urdu text-lg text-lantern-soft" lang="ur" dir="rtl">

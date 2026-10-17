@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Check, Copy, LogOut, Mic, Plus, Share2, Upload, X } from "lucide-react";
+import { Check, Copy, Mic, Plus, Share2, Upload, X } from "lucide-react";
 import { AJRAK_BORDER, AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
+import { BookNav } from "@/components/app/BookNav";
 import { SceneByName, SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { Birdy } from "@/components/mascots/Birdy";
-import { claimBook, clearBook, elderLabel, loadBook, newShareToken, updateBook, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
+import { claimBook, elderLabel, loadBook, newShareToken, updateBook, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
 import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { pushShareLink } from "@/lib/data/remote";
 import { hasSupabase, supabaseBrowser } from "@/lib/supabase/client";
@@ -44,12 +45,6 @@ export default function BookPage() {
     };
   }, [router]);
 
-  async function signOut() {
-    clearBook();
-    if (hasSupabase) await supabaseBrowser().auth.signOut();
-    router.push("/");
-  }
-
   if (!book) {
     return (
       <div className="grid min-h-[100svh] place-items-center">
@@ -67,16 +62,7 @@ export default function BookPage() {
   return (
     <div className="relative min-h-[100svh]">
       <AppBackdrop />
-      <AppHeader>
-        <button
-          type="button"
-          onClick={signOut}
-          className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15"
-        >
-          <LogOut size={16} />
-          <span className="hidden sm:inline">Sign out</span>
-        </button>
-      </AppHeader>
+      <AppHeader />
 
       <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-5 pb-20 pt-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         {/* The book cover: the one bold thing on this screen */}
@@ -148,6 +134,8 @@ export default function BookPage() {
         </div>
 
         {picking && <StartPicker elders={book.elders} onClose={() => setPicking(false)} />}
+
+        <BookNav />
 
         <section className="lg:col-span-2">
           {chapters.length === 0 ? (

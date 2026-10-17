@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { AccountButton } from "@/components/nav/AccountButton";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 
 const LINKS = [
@@ -24,12 +25,7 @@ export function SiteNav() {
         </ul>
         <div className="flex items-center gap-2">
           <SoundToggle />
-          <Link
-            href="/signup?mode=signin"
-            className="hidden h-10 items-center rounded-full px-4 text-sm font-semibold text-moon hover:text-lantern-soft sm:inline-flex"
-          >
-            Sign in
-          </Link>
+          <AccountButton />
         </div>
       </nav>
     </header>

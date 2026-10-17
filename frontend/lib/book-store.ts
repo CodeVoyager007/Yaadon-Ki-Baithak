@@ -59,6 +59,7 @@ export function newShareToken() {
 }
 
 export function saveBook(book: FamilyBook) {
+  if (typeof window === "undefined") return;
   // Older books have no id; mint one now so the remote row has a stable key.
   const next: FamilyBook = book.id ? book : { ...book, id: newId() };
   try {
@@ -71,6 +72,7 @@ export function saveBook(book: FamilyBook) {
 
 /** Reads the book, upgrading the older one-elder shape if it finds one. */
 export function loadBook(): FamilyBook | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
@@ -89,6 +91,7 @@ export function loadBook(): FamilyBook | null {
 
 /** Removes the book, its sessions and chapters, and every voice clip on this device. */
 export function clearBook() {
+  if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(KEY);
     localStorage.removeItem("baithak-sessions");
@@ -96,7 +99,7 @@ export function clearBook() {
   } catch {
     /* ignore */
   }
-  void import("./audio-store").then((m) => m.clearClips());
+  void import("./audio-store").then((m) => m.clearClips()).catch(() => {});
 }
 
 export function updateBook(patch: Partial<FamilyBook>) {

@@ -1,3 +1,4 @@
+import { Reveal } from "@/components/effects/Reveal";
 import { EveningSky } from "@/components/home/EveningSky";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HowItWorks } from "@/components/home/HowItWorks";
@@ -10,8 +11,9 @@ import { StoryShelf } from "@/components/home/StoryShelf";
 
 /**
  * The home page: Dadi's book in the hero (write to it, it writes back), then
- * how it works, why it matters, sample chapters and the promise. The page
- * itself scrolls normally; the only animation is inside the book.
+ * how it works, why it matters, sample chapters and the promise. Sections
+ * lift into view once as you scroll; the intro and lanterns play on a real
+ * page load only.
  */
 export default function HomePage() {
   return (
@@ -24,10 +26,18 @@ export default function HomePage() {
       <SiteNav />
       <main id="main" className="relative">
         <HomeHero />
-        <HowItWorks />
-        <QuietLine />
-        <StoryShelf />
-        <Promise />
+        <Reveal>
+          <HowItWorks />
+        </Reveal>
+        <Reveal>
+          <QuietLine />
+        </Reveal>
+        <Reveal>
+          <StoryShelf />
+        </Reveal>
+        <Reveal>
+          <Promise />
+        </Reveal>
       </main>
       <div className="relative">
         <SiteFooter />

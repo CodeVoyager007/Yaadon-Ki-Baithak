@@ -103,47 +103,57 @@ export function RecordRoom() {
 
   async function nextQuestion(skipped: boolean) {
     setThinking(true);
-    const turns = session.current?.turns ?? [];
-    const { decision, source } = live && elder ? await askNext(elder, theme, turns, skipped) : await askNext(practiceElder, theme, turns, skipped);
-    setNote(source === "stand-in" ? "Practice question for now — the AI interviewer isn't available right now." : null);
-    const q = decision.question;
-    setThoughts((list) => [...list, { id: newId(), decision, source }]);
-    addTurn({ role: "birdy", text: q[lang], lang, at: new Date().toISOString() });
-    setThinking(false);
-    if (decision.action === "wrap_up") {
+    try {
+      const turns = session.current?.turns ?? [];
+      const { decision, source } = live && elder ? await askNext(elder, theme, turns, skipped) : await askNext(practiceElder, theme, turns, skipped);
+      setNote(source === "stand-in" ? "Practice question for now — the AI interviewer isn't available right now." : null);
+      const q = decision.question;
+      setThoughts((list) => [...list, { id: newId(), decision, source }]);
+      addTurn({ role: "birdy", text: q[lang], lang, at: new Date().toISOString() });
+      if (decision.action === "wrap_up") {
+        void speak(q[lang], lang);
+        finish();
+        return;
+      }
+      setQuestion(q);
+      setGentle(decision.mood === "sensitive");
+      chirp();
       void speak(q[lang], lang);
-      finish();
-      return;
+    } catch (err) {
+      console.error("Failed to load next question:", err);
+    } finally {
+      setThinking(false);
     }
-    setQuestion(q);
-    setGentle(decision.mood === "sensitive");
-    chirp();
-    void speak(q[lang], lang);
   }
 
   async function toggleLamp() {
     if (thinking) return;
-    if (rec.status !== "recording") {
-      stopSpeaking();
-      chirp();
-      ensureSession();
-      await rec.start();
-      return;
+    try {
+      if (rec.status !== "recording") {
+        stopSpeaking();
+        chirp();
+        ensureSession();
+        await rec.start();
+        return;
+      }
+      const take = await rec.stop();
+      if (!take) return;
+      if (live) {
+        setThinking(true);
+        const clipId = newId();
+        await putClip(clipId, take.blob).catch(() => {});
+        // The route also keeps the real voice in the family's private bucket
+        // and hands back its path, which reaches the database with the turn.
+        const { text, audioPath } = await transcribe(take.blob, lang, take.caption, session.current?.id);
+        addTurn({ role: "elder", text, lang, clipId, audioPath, durationMs: take.durationMs, at: new Date().toISOString() });
+      } else {
+        addTurn({ role: "elder", text: "", lang, at: new Date().toISOString() }); // practice: counted, never saved
+      }
+      await nextQuestion(false);
+    } catch (err) {
+      console.error("Error in toggleLamp:", err);
+      setThinking(false);
     }
-    const take = await rec.stop();
-    if (!take) return;
-    if (live) {
-      setThinking(true);
-      const clipId = newId();
-      await putClip(clipId, take.blob).catch(() => {});
-      // The route also keeps the real voice in the family's private bucket
-      // and hands back its path, which reaches the database with the turn.
-      const { text, audioPath } = await transcribe(take.blob, lang, take.caption, session.current?.id);
-      addTurn({ role: "elder", text, lang, clipId, audioPath, durationMs: take.durationMs, at: new Date().toISOString() });
-    } else {
-      addTurn({ role: "elder", text: "", lang, at: new Date().toISOString() }); // practice: counted, never saved
-    }
-    await nextQuestion(false);
   }
 
   async function skip() {

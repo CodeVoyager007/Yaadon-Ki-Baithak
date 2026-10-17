@@ -1,6 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Volume2, VolumeX } from "lucide-react";
+import { SkyLantern } from "@/components/effects/SkyLantern";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSound } from "@/components/sound/SoundProvider";
 import doorway from "@/components/illustrations/trailer/doorway.jpg";
@@ -26,6 +28,24 @@ const TITLE_MS = 3200;
 
 type Phase = "off" | "gate" | "logo" | number | "title" | "exit";
 
+/** True after the gate has opened once in this document: route changes keep
+ * the module, a fresh load (or refresh) replaces it, so the intro shows on
+ * every real load but never when someone simply clicks "Home". */
+let introPlayedThisLoad = false;
+
+/** Did this document (not this route) open on the home page? The navigation
+ * entry keeps the URL the tab was loaded with, even after client-side route
+ * changes — so "book → Home" never counts as a load, while a direct visit or
+ * refresh of "/" always does. */
+function loadedOnHome() {
+  try {
+    const [nav] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+    return new URL(nav?.name ?? window.location.href).pathname === "/";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * A studio-style intro, played from the footer's "Watch the intro": a tap to begin (so the
  * sound can play), a "ta-dum" logo, a teaser of hard cuts, then the title.
@@ -33,7 +53,7 @@ type Phase = "off" | "gate" | "logo" | number | "title" | "exit";
  */
 export function IntroFilm() {
   const reduce = useReducedMotion();
-  const { sfx } = useSound();
+  const { sfx, enabled: soundOn, toggle: toggleSound } = useSound();
   const [phase, setPhase] = useState<Phase>("off");
   const timers = useRef<number[]>([]);
 
@@ -48,7 +68,10 @@ export function IntroFilm() {
     timers.current.push(window.setTimeout(() => setPhase("off"), 900));
   }, []);
 
-  // It plays only when asked for (the footer button): a first visit goes straight to the page.
+  // It plays when asked for (the footer button), and also on a real page load
+  // of the site. Clicking "Home" from another page is navigation, not a load,
+  // so the film stays out of the way — a module-level flag survives route
+  // changes (same bundle) but resets on every fresh load/refresh.
   useEffect(() => {
     if (reduce) return;
     const play = () => {
@@ -58,6 +81,10 @@ export function IntroFilm() {
       });
       setPhase("gate");
     };
+    if (!introPlayedThisLoad && loadedOnHome()) {
+      introPlayedThisLoad = true;
+      play();
+    }
     window.addEventListener("baithak:intro", play);
     return () => window.removeEventListener("baithak:intro", play);
   }, [reduce]);
@@ -120,6 +147,15 @@ export function IntroFilm() {
         </>
       )}
 
+      {/* Flying lanterns on the gate: the story's bright beginning */}
+      {phase === "gate" && (
+        <>
+          <SkyLantern delay={0.4} duration={9} className="bottom-[4vh] right-[14vw]" />
+          <SkyLantern delay={2.4} duration={11} className="bottom-[2vh] right-[42vw]" />
+          <SkyLantern delay={4.6} duration={10} className="bottom-[6vh] right-[68vw]" />
+        </>
+      )}
+
       <AnimatePresence mode="wait">
         {phase === "gate" && (
           <motion.button
@@ -140,11 +176,11 @@ export function IntroFilm() {
               کہانی شروع کریں
             </span>
             <span className="font-display -mt-3 text-xl text-moon/85 group-hover:text-moon">Tap to begin the story</span>
-            <span className="text-xs text-moon/40">Best with sound on</span>
+            <span className="text-xs text-moon/40">{soundOn ? "Best with sound on" : "Sound is off"}</span>
           </motion.button>
         )}
 
-        {phase === "logo" && <Logo key="logo" />}
+      {phase === "logo" && <Logo key="logo" />}
 
         {shot && (
           <motion.div key={`shot-${phase}`} className="absolute inset-0" initial={{ opacity: 1 }} exit={{ opacity: 1 }}>
@@ -169,6 +205,19 @@ export function IntroFilm() {
         {phase === "title" && <Title key="title" />}
       </AnimatePresence>
 
+      {/* Sound switch: on the gate (bottom left) and during the film (left of Skip). */}
+      {phase !== "exit" && (
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          aria-label={soundOn ? "Turn the intro sound off" : "Turn the intro sound on"}
+          className="absolute bottom-8 left-6 z-40 inline-flex h-10 items-center gap-2 rounded-full border border-moon/25 bg-black/40 px-4 text-sm font-bold text-moon/85 backdrop-blur transition hover:bg-black/70 hover:text-moon"
+        >
+          {soundOn ? <Volume2 size={16} aria-hidden /> : <VolumeX size={16} aria-hidden />}
+          <span className="hidden sm:inline">{soundOn ? "Sound on" : "Sound off"}</span>
+        </button>
+      )}
       {phase !== "gate" && phase !== "exit" && (
         <button
           type="button"

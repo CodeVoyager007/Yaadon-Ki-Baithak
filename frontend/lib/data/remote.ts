@@ -113,3 +113,23 @@ export async function pushShareLink(familyId: string | undefined, token: string 
   }
   await supabase.from("share_links").upsert({ token, family_id: familyId, revoked: false });
 }
+
+/**
+ * A family deletes a chapter: the chapter row, its session and turns, and —
+ * above all — the elder's own voice from the private audio bucket. RLS makes
+ * the check with the signed-in user's token, exactly like every write, and
+ * only paths inside this family's own folder ever reach storage.remove.
+ */
+export async function removeChapterRemote(stored: StoredChapter, familyId: string | undefined) {
+  if (!isUuid(stored.id) || !isUuid(stored.sessionId) || !isUuid(familyId)) return;
+  const supabase = client();
+  if (!supabase) return;
+
+  // Only touch paths this family owns; anything else stays.
+  const voicePaths = stored.turns.map((t) => t.audioPath ?? "").filter((p) => p.startsWith(`${familyId}/`));
+
+  await supabase.storage.from("audio").remove(voicePaths);
+  await supabase.from("turns").delete().eq("session_id", stored.sessionId);
+  await supabase.from("chapters").delete().eq("id", stored.id);
+  await supabase.from("sessions").delete().eq("id", stored.sessionId);
+}

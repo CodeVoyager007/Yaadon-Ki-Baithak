@@ -9,7 +9,7 @@ const STEPS = [
   {
     icon: NotebookPen,
     title: "Hudhud listens and decides",
-    body: "He follows the details they mention, slows down when a memory hurts, and knows when the chapter is ready. His notebook shows why.",
+    body: "He follows the details they mention, picks up on cues that a memory might hurt and slows down — and always shows what he noticed.",
   },
   {
     icon: BookOpen,

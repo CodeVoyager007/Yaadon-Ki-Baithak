@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
+import { BookNav } from "@/components/app/BookNav";
 import { cleanElder, EMPTY_ELDER, ElderFields, type ElderDraft } from "@/components/app/Fields";
 import { BirdySays } from "@/components/app/SpeechBubble";
 import { useSound } from "@/components/sound/SoundProvider";
@@ -40,6 +41,7 @@ export default function NewElderPage() {
           </div>
         </section>
       </main>
+      <BookNav />
     </div>
   );
 }

@@ -8,10 +8,13 @@ const STORE = "clips";
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || typeof indexedDB === "undefined") {
+      return reject(new Error("IndexedDB is not supported"));
+    }
     const req = indexedDB.open(DB, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(req.error ?? new Error("IndexedDB error"));
   });
 }
 
@@ -21,12 +24,16 @@ async function run<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRe
     const tx = db.transaction(STORE, mode);
     const req = fn(tx.objectStore(STORE));
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(req.error ?? new Error("IndexedDB transaction error"));
   });
 }
 
 export async function putClip(id: string, blob: Blob) {
-  await run("readwrite", (s) => s.put(blob, id));
+  try {
+    await run("readwrite", (s) => s.put(blob, id));
+  } catch (err) {
+    console.warn("Could not save audio clip to IndexedDB:", err);
+  }
 }
 
 export async function getClip(id: string): Promise<Blob | null> {

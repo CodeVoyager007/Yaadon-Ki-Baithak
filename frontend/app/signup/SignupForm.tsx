@@ -7,6 +7,7 @@ import { Birdy, type BirdyMood } from "@/components/mascots/Birdy";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { useSound } from "@/components/sound/SoundProvider";
 import { claimBook, loadBook } from "@/lib/book-store";
+import { rememberDemoUser } from "@/lib/auth";
 import { safePath } from "@/lib/safe-path";
 import { demoMode, hasSupabase, supabaseBrowser } from "@/lib/supabase/client";
 
@@ -72,6 +73,8 @@ export function SignupForm() {
       if (!hasSupabase) {
         if (!demoMode) throw new Error(NOT_SET_UP);
         await new Promise((r) => setTimeout(r, 900));
+        // Demo mode: remember the sign-in so a refresh doesn't log them out.
+        rememberDemoUser(email, name.trim() || undefined);
         setMood("happy");
         chirp();
         router.push(nextPath());
@@ -117,6 +120,7 @@ export function SignupForm() {
     setError(null);
     if (!hasSupabase) {
       if (!demoMode) return setError(NOT_SET_UP);
+      rememberDemoUser("google@demo.local", "Google user");
       chirp();
       router.push(nextPath());
       return;
