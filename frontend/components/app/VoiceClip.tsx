@@ -22,6 +22,18 @@ export function VoiceClip({ clipId, durationMs, label = "Play their voice" }: { 
   const audio = useRef<HTMLAudioElement | null>(null);
   const url = useRef<string | null>(null);
 
+  useEffect(() => {
+    audio.current?.pause();
+    audio.current = null;
+    if (url.current) {
+      URL.revokeObjectURL(url.current);
+      url.current = null;
+    }
+    setPlaying(false);
+    setProgress(0);
+    setMissing(!clipId);
+  }, [clipId]);
+
   useEffect(
     () => () => {
       audio.current?.pause();
