@@ -17,7 +17,7 @@ const PROMISES = [
   {
     icon: BookOpenCheck,
     title: "Only their words",
-    body: "Birdy never adds names, dates or events they didn't say. Anything unclear is marked, not guessed.",
+    body: "Laali never adds names, dates or events they didn't say. Anything unclear is marked, not guessed.",
   },
   {
     icon: LockKeyhole,

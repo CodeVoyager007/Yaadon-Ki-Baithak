@@ -10,6 +10,7 @@ import { Birdy } from "@/components/mascots/Birdy";
 import { Diya } from "@/components/mascots/Diya";
 import { NightSky } from "@/components/scene/NightSky";
 import { SoundToggle } from "@/components/sound/SoundToggle";
+import { ThinkingPanel, type Thought } from "@/components/app/ThinkingPanel";
 import { useSound } from "@/components/sound/SoundProvider";
 import { askNext, speak, stopSpeaking, transcribe } from "@/lib/api";
 import { putClip } from "@/lib/audio-store";
@@ -60,9 +61,11 @@ export function RecordRoom() {
   const rec = useRecorder(lang);
   const [question, setQuestion] = useState<Question>(themeInfo.firstQuestion);
   const [thinking, setThinking] = useState(false);
-  /** The interviewer flagged the last answer as painful: Birdy stays gentle until the next answer starts. */
+  /** The interviewer flagged the last answer as painful: Laali stays gentle until the next answer starts. */
   const [gentle, setGentle] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  /** Every decision this sitting, for Laali's notebook. */
+  const [thoughts, setThoughts] = useState<Thought[]>([]);
   const session = useRef<Session | null>(null);
 
   useEffect(() => setQuestion(themeInfo.firstQuestion), [themeInfo]);
@@ -104,6 +107,7 @@ export function RecordRoom() {
     const { decision, source } = live && elder ? await askNext(elder, theme, turns, skipped) : await askNext(practiceElder, theme, turns, skipped);
     setNote(source === "stand-in" ? "Practice question for now — the AI interviewer isn't available right now." : null);
     const q = decision.question;
+    setThoughts((list) => [...list, { id: newId(), decision, source }]);
     addTurn({ role: "birdy", text: q[lang], lang, at: new Date().toISOString() });
     setThinking(false);
     if (decision.action === "wrap_up") {
@@ -233,11 +237,11 @@ export function RecordRoom() {
             </button>
             <p className="mt-4 text-lg font-bold" aria-live="polite">
               {thinking
-                ? "Birdy is thinking of the next question"
+                ? "Laali is thinking of the next question"
                 : rec.status === "asking"
                   ? "Allow the microphone to begin"
                   : recording
-                    ? "Birdy is listening. Tap the lamp when you finish."
+                    ? "Laali is listening. Tap the lamp when you finish."
                     : "Tap the lamp and start talking"}
             </p>
             {recording && rec.caption && (
@@ -259,6 +263,8 @@ export function RecordRoom() {
               <ElderAction onClick={skip} disabled={thinking} icon={<SkipForward size={26} />} ur="اگلا سوال" en="Skip" />
               <ElderAction onClick={finish} disabled={thinking} icon={<Square size={22} />} ur="آج کے لیے بس" en="Stop for today" />
             </div>
+
+            <ThinkingPanel thoughts={thoughts} />
 
             {note && <p className="mt-6 text-xs text-moon/45">{note}</p>}
             {!live && (
@@ -283,7 +289,7 @@ export function RecordRoom() {
             {live && answers > 0 && session.current ? (
               <>
                 <p className="max-w-sm text-moon/70">
-                  {answers} {answers === 1 ? "answer" : "answers"} saved in {who}&apos;s own voice. Birdy can turn them into a chapter now.
+                  {answers} {answers === 1 ? "answer" : "answers"} saved in {who}&apos;s own voice. Laali can turn them into a chapter now.
                 </p>
                 <button
                   type="button"
@@ -309,6 +315,7 @@ export function RecordRoom() {
                     onClick={() => {
                       session.current = null;
                       setQuestion(themeInfo.firstQuestion);
+                      setThoughts([]);
                       setPhase("session");
                     }}
                     className="h-12 rounded-2xl px-5 font-bold text-moon/80 hover:text-moon">

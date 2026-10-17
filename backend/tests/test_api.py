@@ -65,6 +65,7 @@ def test_turn_returns_the_decision_with_handoff_and_trace(env, api, monkeypatch)
     assert body["action"] == "follow_up" and body["mood"] == "normal" and body["handoff"] is None
     assert body["question"]["en"] == GOOD["question"]["en"]
     assert body["trace"][0]["agent"] == "interviewer"
+    assert body["signals"] == {"answers": 1, "sensitive": False, "tired": False, "skipped": False}
 
 
 def test_chapter_runs_the_pipeline_and_speaks_camel_case(env, api, monkeypatch):
@@ -77,6 +78,15 @@ def test_chapter_runs_the_pipeline_and_speaks_camel_case(env, api, monkeypatch):
     assert body["chapter"]["pullQuote"] == {"text": "Cardamom and wet earth after rain.", "turnIndex": 3}
     assert body["chapter"]["sourceTurns"] == [3] and body["imageUrl"] is None
     assert body["trace"][-1]["outcome"].startswith("illustrator not configured")
+
+
+def test_skip_before_any_answer_still_gets_a_question(env, api, monkeypatch):
+    env(GEMINI_API_KEY="k")
+    monkeypatch.setattr(gemini, "generate_json", fake_model(GOOD))
+    res = api.post("/api/turn", json={**BODY, "turns": [], "skipped": True})
+    assert res.status_code == 200 and res.json()["signals"]["skipped"] is True
+    # The writer still needs something to write from.
+    assert api.post("/api/story", json={**BODY, "turns": []}).status_code == 400
 
 
 def test_bad_bodies_are_400(env, api):

@@ -14,8 +14,8 @@ const STEPS = [
     art: howChai,
   },
   {
-    title: "They talk, Birdy listens",
-    body: "Birdy asks one gentle question at a time, in Urdu, and follows the details they mention. No typing, no reading.",
+    title: "They talk, Laali listens",
+    body: "Laali asks one gentle question at a time, in Urdu, and follows the details they mention. No typing, no reading.",
     art: howListen,
   },
   {
@@ -104,7 +104,7 @@ function HowItWorksClassic() {
   );
 }
 
-const URDU_STEPS = ["مل کر بیٹھیں", "وہ بولیں، برڈی سنے", "ایک نیا باب"];
+const URDU_STEPS = ["مل کر بیٹھیں", "وہ بولیں، لالی سنے", "ایک نیا باب"];
 
 export function HowItWorks() {
   return (

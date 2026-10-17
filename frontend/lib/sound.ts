@@ -1,5 +1,5 @@
 /**
- * Soft solo piano and Birdy's chirp, synthesized with the Web Audio API.
+ * Soft solo piano and Laali's chirp, synthesized with the Web Audio API.
  * No audio files to download, which keeps the page light on slow 4G.
  *
  * The music: slow broken chords (Am, F, C, G, and friends) in the left

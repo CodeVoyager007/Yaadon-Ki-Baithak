@@ -43,7 +43,7 @@ def user_prompt(turns: list[Turn]) -> str:
     lines = []
     for i, t in enumerate(turns):
         n = t.index if t.index is not None else i
-        who = "Elder" if t.role == "elder" else "Birdy asked"
+        who = "Elder" if t.role == "elder" else "Laali asked"
         lines.append(f"[{n}] {who}: {as_data(t.text)}")
     return "<<<\n" + "\n".join(lines) + "\n>>>"
 

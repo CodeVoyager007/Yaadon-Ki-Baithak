@@ -43,10 +43,10 @@ const MOODS: Record<BirdyMood, { animate: TargetAndTransition; transition: Trans
 };
 
 /**
- * Birdy, the storyteller bird. A cut-out of the team's chosen bird
+ * Laali, the storyteller bird. A cut-out of the team's chosen bird
  * (birdy.webp, next to this file) brought to life with motion instead of drawing.
  */
-export function Birdy({ mood = "idle", size = 160, className, title = "Birdy", flip = false }: Props) {
+export function Birdy({ mood = "idle", size = 160, className, title = "Laali", flip = false }: Props) {
   const reduce = useReducedMotion();
   const m = MOODS[mood];
 

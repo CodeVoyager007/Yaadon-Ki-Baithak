@@ -2,7 +2,7 @@
 
 An AI agent that interviews grandparents by voice in Urdu and turns their memories into an illustrated family storybook, with their real voice beside every chapter. Built for the NYLP AI Hackathon 2026.
 
-Birdy sits with an elder, asks one gentle question at a time (Urdu + English, spoken aloud), records the answer in their **own voice**, then three agents take over: the interviewer picks the next question, the story writer writes a bilingual chapter **only from what was said**, and the painter illustrates it in one consistent storybook style. Every chapter keeps the real recordings beside the text — that is the proof nothing was invented.
+Laali sits with an elder, asks one gentle question at a time (Urdu + English, spoken aloud), records the answer in their **own voice**, then three agents take over: the interviewer picks the next question, the story writer writes a bilingual chapter **only from what was said**, and the painter illustrates it in one consistent storybook style. Every chapter keeps the real recordings beside the text — that is the proof nothing was invented.
 
 ## Run it
 
@@ -10,7 +10,7 @@ See the root [README](../README.md#quick-start): the Python backend on port 8000
 
 **Demo mode:** with no Supabase keys, sign up just moves you forward and the family book is saved in the browser. Add the keys and real Google + email sign in turns on. Point `NEXT_PUBLIC_API_URL` at a backend with Gemini and Cloudflare keys and the AI answers for real; until then the app uses honest stand-ins (practice questions, transcript-only drafts) and labels them as such.
 
-**Sound:** night ambience and Birdy's chirps start on your first click (browsers block sound before that). The Sound button turns it off and remembers it.
+**Sound:** night ambience and Laali's chirps start on your first click (browsers block sound before that). The Sound button turns it off and remembers it.
 
 ## Environment variables
 

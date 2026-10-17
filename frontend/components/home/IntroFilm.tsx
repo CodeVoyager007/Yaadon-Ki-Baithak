@@ -19,7 +19,7 @@ const SHOTS: Shot[] = [
   { img: dholki.src, ur: "سات راتیں، گیت ہی گیت", en: "Seven nights of songs.", ms: 1800, sound: "whoosh" },
   { img: river.src, ur: "لالٹین کی روشنی میں سنی کہانیاں", en: "Stories told by lantern light.", ms: 1900, sound: "whoosh" },
   { ur: "یہ کہانیاں کسی نے لکھی نہیں", en: "Nobody ever wrote them down.", ms: 2100, sound: null },
-  { img: listen.src, ur: "اب برڈی سن رہا ہے", en: "Now, someone is listening.", ms: 2100, sound: "whoosh" },
+  { img: listen.src, ur: "اب لالی سن رہی ہے", en: "Now, someone is listening.", ms: 2100, sound: "whoosh" },
 ];
 const LOGO_MS = 2700;
 const TITLE_MS = 3200;

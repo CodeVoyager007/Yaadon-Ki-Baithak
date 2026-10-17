@@ -22,6 +22,7 @@ def test_wrap_up_hands_off_to_the_story_writer():
 def test_cues_show_up_in_the_trace():
     out = run(Orchestrator(FakeModel(GOOD)).interview_turn(ELDER, "1947", [said("My mother passed away that year")]))
     assert "grief" in out.trace[0].detail
+    assert out.signals.sensitive and out.signals.answers == 1
 
 
 def test_pipeline_passes_the_writers_scene_to_the_illustrator():

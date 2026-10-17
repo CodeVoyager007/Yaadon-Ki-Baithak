@@ -17,10 +17,10 @@ so this folder can be pushed to a Space as-is (see §6).
 ```
 backend/
   agents/            the AI team: no keys, no network, no web framework
-    interviewer.py     Birdy: picks the next move every turn
+    interviewer.py     Laali: picks the next move every turn
     story_writer.py    turns a session into a bilingual chapter, never invents facts
     illustrator.py     builds the FLUX.1 schnell request from the writer's scene
-    orchestrator.py    hand-off and pipeline: Birdy → writer → illustrator, with a trace
+    orchestrator.py    hand-off and pipeline: Laali → writer → illustrator, with a trace
     guardrails.py      grief / tiredness / private-info cues (EN, Roman Urdu, Urdu), fencing
     types.py           pydantic shapes (camelCase on the wire)
   app/               FastAPI around the agents
@@ -44,7 +44,7 @@ python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activ
 pip install -r requirements-dev.txt
 cp .env.example .env                              # fill in keys; APP_ENV=development
 uvicorn app.main:app --env-file .env --reload --port 8000
-pytest                                            # 32 tests, no keys needed
+pytest                                            # 33 tests, no keys needed
 ```
 
 Then set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`
@@ -52,7 +52,7 @@ and run the frontend. `GET /health` shows which providers are connected.
 
 ## 2. The agents
 
-**Birdy decides; the orchestrator runs the team.**
+**Laali decides; the orchestrator runs the team.**
 
 ```
           ┌──────────────── POST /api/turn ─────────────────┐
@@ -77,7 +77,7 @@ actually did:
 
 - **Interviewer.** Before each call it reads the last answer for grief, 1947
   violence or tiredness (English, Roman Urdu, Urdu script) and tells the model.
-  `mood: "sensitive"` (from the model or the cue check) turns Birdy gentle on the
+  `mood: "sensitive"` (from the model or the cue check) turns Laali gentle on the
   record screen. Questions asking for phone, CNIC, bank, money or an address,
   two questions at once, or an over-long question are rejected and retried once.
   At 8 answers it wraps up with a fixed thank-you line and doesn't call the
@@ -96,12 +96,12 @@ actually did:
 
 | Route | Body | Response |
 | --- | --- | --- |
-| `POST /api/turn` | `{ elder, theme, turns, skipped? }` | `InterviewerDecision` + `handoff` + `trace` |
+| `POST /api/turn` | `{ elder, theme, turns, skipped? }` | `InterviewerDecision` + `handoff` + `signals` (what Laali noticed) + `trace` |
 | `POST /api/chapter` | `{ elder, theme, turns, familySeed }` | `{ chapter, imageUrl?, trace }`: the orchestrated hand-off |
 | `POST /api/story` | `{ elder, theme, turns }` | `Chapter` (writer only) |
 | `POST /api/illustrate` | `{ chapter, familySeed }` | `{ imageUrl }`, the "New picture" button |
 | `POST /api/transcribe` | FormData `{ audio, lang, sessionId? }` | `{ text, audioPath? }`. Gemini, then Whisper as backup; the clip is stored with the caller's token |
-| `POST /api/tts` | `{ text, lang }` | `audio/wav`, Birdy's voice only, cached by text |
+| `POST /api/tts` | `{ text, lang }` | `audio/wav`, Laali's voice only, cached by text |
 | `GET /api/share/{token}` | none | read-only family book (public, service role after the token check) |
 | `GET /health` | none | which providers are connected (no secrets) |
 
@@ -188,7 +188,7 @@ share_links → families        storage: audio/, images/ (private, {family_id}/�
 
 ## 8. Rules
 
-- Free tiers only. No voice cloning: TTS is only ever Birdy; the elder's real recordings are kept.
+- Free tiers only. No voice cloning: TTS is only ever Laali; the elder's real recordings are kept.
 - The story writer never invents facts, and no route papers over a model failure with generated content.
 - Never log or return keys or raw provider errors. Validate and clamp everything from the browser;
   treat model output as untrusted JSON.

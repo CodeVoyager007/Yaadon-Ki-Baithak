@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+from dataclasses import asdict
+
 from fastapi import APIRouter, Request
 
 from agents import Orchestrator, illustration_request, run_story_writer
@@ -29,14 +31,14 @@ def _orchestrator(user_id):
 
 @router.post("/turn")
 async def turn(request: Request):
-    """Body: { elder, theme, turns, skipped? } -> InterviewerDecision + handoff + trace.
+    """Body: { elder, theme, turns, skipped? } -> InterviewerDecision + handoff + signals + trace.
     Every word of the question comes from the model, or from the agent's fixed
     thank-you line at the turn cap."""
     caller = await require_caller(request, "turn")
     if not settings().has_gemini:
         raise not_configured("The AI interviewer")
     body = await read_json(request)
-    elder, turns = clean_elder(body.get("elder")), clean_turns(body.get("turns"))
+    elder, turns = clean_elder(body.get("elder")), clean_turns(body.get("turns"), allow_empty=True)
     try:
         out = await _orchestrator(caller.user_id).interview_turn(elder, clean_theme(body.get("theme")), turns, body.get("skipped") is True)
     except Exception as err:
@@ -47,6 +49,8 @@ async def turn(request: Request):
     return {
         **out.decision.model_dump(by_alias=True),
         "handoff": out.handoff,
+        # What Laali noticed before deciding; drives the record screen's notebook panel.
+        "signals": asdict(out.signals) if out.signals else None,
         "trace": [t.model_dump(by_alias=True) for t in out.trace],
     }
 

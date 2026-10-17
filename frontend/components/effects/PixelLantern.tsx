@@ -1,6 +1,6 @@
 /**
  * Pixel-art lantern that fills with light from the bottom up.
- * Used anywhere the app is waiting: signing in, Birdy writing a chapter.
+ * Used anywhere the app is waiting: signing in, Laali writing a chapter.
  */
 const SHAPE = [
   "...dddd...",

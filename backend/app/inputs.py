@@ -54,8 +54,9 @@ def clean_elder(raw: Any) -> ElderProfile:
     )
 
 
-def clean_turns(raw: Any, max_turns: int = 40) -> list[Turn]:
-    """The conversation so far: only the last N turns, each with readable text."""
+def clean_turns(raw: Any, max_turns: int = 40, allow_empty: bool = False) -> list[Turn]:
+    """The conversation so far: only the last N turns, each with readable text.
+    Empty is only allowed for the interviewer, e.g. a skip before the first answer."""
     if not isinstance(raw, list):
         raise bad_body()
     turns: list[Turn] = []
@@ -74,7 +75,7 @@ def clean_turns(raw: Any, max_turns: int = 40) -> list[Turn]:
                 started_at=_short(t.get("startedAt"), 40),
             )
         )
-    if not turns:
+    if not turns and not allow_empty:
         raise bad_body()
     return turns
 

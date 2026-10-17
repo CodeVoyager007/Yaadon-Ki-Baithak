@@ -13,6 +13,8 @@ import { elderLabel, getElder, loadBook, newId } from "@/lib/book-store";
 import { getChapterForSession, getSession, saveChapter, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { THEMES } from "@/lib/themes";
 
+const AGENT_LABEL = { story_writer: "Story writer", illustrator: "Illustrator" } as const;
+
 type StepState = "waiting" | "working" | "done";
 type Step = { label: string; state: StepState };
 
@@ -89,6 +91,12 @@ function Writing() {
           ? `Every part of the chapter is linked to the answer it came from (${written.chapter.sourceTurns.length} answers used).`
           : "The AI writer isn't available right now, so this draft is the transcript, word for word. Nothing added.",
       );
+      // The orchestrator's own record of who did what, and how long it took.
+      for (const step of written.trace) {
+        if (step.agent === "story_writer" || step.agent === "illustrator") {
+          say(`${AGENT_LABEL[step.agent]}: ${step.outcome}${step.detail ? `. ${step.detail}` : ""} (${(step.ms / 1000).toFixed(1)} s)`);
+        }
+      }
       mark(1, "done");
 
       mark(2, "working");

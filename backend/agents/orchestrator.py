@@ -1,8 +1,8 @@
 """Orchestrator: runs the three agents as one team.
 
-Birdy (the interviewer) makes the creative decision every turn, including
+Laali (the interviewer) makes the creative decision every turn, including
 when the chapter is ready. The orchestrator owns everything around that:
-- the hand-off: when Birdy wraps up, the session goes to the story writer;
+- the hand-off: when Laali wraps up, the session goes to the story writer;
 - the pipeline: writer, then illustrator, with the writer's scene passed along;
 - failure policy: no chapter means fail honestly (the browser keeps the
   transcript as a draft), but a failed painting still keeps the chapter;
@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Literal, Optional
 
 from .illustrator import illustration_request
-from .interviewer import run_interviewer
+from .interviewer import Signals, run_interviewer
 from .story_writer import run_story_writer
 from .types import Chapter, ElderProfile, IllustrationRequest, InterviewerDecision, JsonModel, TraceStep, Turn
 
@@ -36,6 +36,7 @@ class TurnOutcome:
     decision: Optional[InterviewerDecision]
     handoff: Optional[Literal["story_writer"]] = None
     trace: list[TraceStep] = field(default_factory=list)
+    signals: Optional[Signals] = None
 
 
 @dataclass
@@ -76,9 +77,9 @@ class Orchestrator:
             )
         ]
         if decision.action != "wrap_up":
-            return TurnOutcome(decision, trace=trace)
+            return TurnOutcome(decision, trace=trace, signals=signals)
         trace.append(TraceStep(agent="orchestrator", outcome="hand-off to story writer", detail=f"{signals.answers} answers"))
-        return TurnOutcome(decision, handoff="story_writer", trace=trace)
+        return TurnOutcome(decision, handoff="story_writer", trace=trace, signals=signals)
 
     async def write_chapter(
         self, elder: ElderProfile, theme: str, turns: list[Turn], family_seed: int

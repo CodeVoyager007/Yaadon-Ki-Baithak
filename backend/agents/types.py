@@ -47,7 +47,7 @@ class Bilingual(Wire):
 
 
 class InterviewerDecision(Wire):
-    """What Birdy decides after each elder turn. wrap_up is the hand-off to the writer."""
+    """What Laali decides after each elder turn. wrap_up is the hand-off to the writer."""
 
     action: Action
     question: Bilingual

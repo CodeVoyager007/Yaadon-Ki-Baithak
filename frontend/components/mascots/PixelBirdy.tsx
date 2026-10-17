@@ -1,5 +1,5 @@
 /**
- * Birdy as a 16x14 pixel-art sprite, for loaders, badges and small spots.
+ * Laali as a 16x14 pixel-art sprite, for loaders, badges and small spots.
  * Each character in SPRITE maps to a colour in PALETTE ("." is empty).
  */
 const SPRITE = [

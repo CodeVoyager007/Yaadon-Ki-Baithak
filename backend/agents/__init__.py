@@ -1,4 +1,4 @@
-"""The Baithak agents: interviewer (Birdy), story writer, illustrator, and the orchestrator that runs them.
+"""The Baithak agents: interviewer (Laali), story writer, illustrator, and the orchestrator that runs them.
 
 No keys, no network, no web framework in here. The API in app/ hands them a
 model function and a painter; tests hand them fakes.

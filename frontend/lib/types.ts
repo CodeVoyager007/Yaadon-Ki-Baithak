@@ -25,7 +25,7 @@ export type ElderProfile = {
 
 export type Mood = "normal" | "sensitive";
 
-/** What Birdy decides after each answer. wrap_up hands the session to the story writer. */
+/** What Laali decides after each answer. wrap_up hands the session to the story writer. */
 export type InterviewerDecision = {
   action: "follow_up" | "new_topic" | "wrap_up";
   question: { ur: string; en: string };
@@ -33,8 +33,12 @@ export type InterviewerDecision = {
   why: string;
   heard: string[];
   handoff?: "story_writer" | null;
+  /** What Laali noticed in the last answer before deciding. */
+  signals?: Signals | null;
   trace?: TraceStep[];
 };
+
+export type Signals = { answers: number; sensitive: boolean; tired: boolean; skipped: boolean };
 
 export type Chapter = {
   title: { ur: string; en: string };

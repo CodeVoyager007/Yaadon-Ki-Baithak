@@ -146,7 +146,7 @@ export function ChapterView({ stored, elder }: { stored: StoredChapter; elder: E
               <li key={t.index} className="glass-night rounded-[22px] p-4 sm:p-5">
                 {asked && (
                   <p className="text-sm text-moon/55" dir="auto">
-                    Birdy asked: {asked.text}
+                    Laali asked: {asked.text}
                   </p>
                 )}
                 <p className={`mt-1 text-moon ${isUrdu(t.text) ? "font-urdu text-lg leading-[2.1]" : ""}`} dir="auto">

@@ -1,4 +1,4 @@
-"""Voice routes: the elder's answer in (transcribe) and Birdy's question out (tts)."""
+"""Voice routes: the elder's answer in (transcribe) and Laali's question out (tts)."""
 
 from __future__ import annotations
 
@@ -104,19 +104,19 @@ async def _save_clip(token: str, user_id: str, session_id: str, data: bytes, mim
     return path
 
 
-# Birdy asks the same opening questions again and again; cache them so repeats are free.
+# Laali asks the same opening questions again and again; cache them so repeats are free.
 _tts_cache: "OrderedDict[str, bytes]" = OrderedDict()
 TTS_CACHE_SIZE = 64
 
 
 @router.post("/tts")
 async def tts(request: Request):
-    """Body: { text, lang } -> audio/wav. Only Birdy is ever synthesized; the elder's
+    """Body: { text, lang } -> audio/wav. Only Laali is ever synthesized; the elder's
     voice is never cloned. If the model can't speak the line, 502 and the browser
     uses its own speechSynthesis voice."""
     await require_caller(request, "tts")
     if not settings().has_gemini:
-        raise not_configured("Birdy's voice")
+        raise not_configured("Laali's voice")
     body = await read_json(request)
     text = body.get("text").strip()[:500] if isinstance(body.get("text"), str) else ""
     if not text:
@@ -127,7 +127,7 @@ async def tts(request: Request):
             wav = await gemini.speak(text)
         except Exception as err:
             log.error("[api/tts] %s", err)
-            raise provider_failed("Birdy's voice") from None
+            raise provider_failed("Laali's voice") from None
         _tts_cache[text] = wav
         if len(_tts_cache) > TTS_CACHE_SIZE:
             _tts_cache.popitem(last=False)

@@ -45,7 +45,7 @@ export function Hero() {
             Every elder is a&nbsp;library.
           </h1>
           <p className="hero-lede mt-6 max-w-[34rem] text-lg leading-relaxed text-moon/80">
-            Birdy sits with your Nani, asks gentle questions in her own language, and turns her answers into an
+            Laali sits with your Nani, asks gentle questions in her own language, and turns her answers into an
             illustrated storybook with her real voice inside.
           </p>
           <div className="hero-ctas mt-9 flex flex-wrap items-center gap-4">
@@ -84,7 +84,7 @@ export function Hero() {
               window.setTimeout(() => setMood("idle"), 900);
             }}
           >
-            <Birdy mood={mood} size={128} flip title="Birdy, the storyteller bird" />
+            <Birdy mood={mood} size={128} flip title="Laali, the storyteller bird" />
           </motion.div>
 
           <ChapterCard chapter={HERO_CHAPTER} />
