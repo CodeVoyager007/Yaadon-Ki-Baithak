@@ -73,6 +73,16 @@ export function saveBook(book: FamilyBook) {
   if (hasSupabase) void pushBook(next).catch(() => {});
 }
 
+/** Writes a book read back from Supabase, without sending it straight back. */
+export function restoreBook(book: FamilyBook) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(book));
+  } catch {
+    /* storage blocked */
+  }
+}
+
 /** Reads the book, upgrading the older one-elder shape if it finds one. */
 export function loadBook(): FamilyBook | null {
   if (typeof window === "undefined") return null;

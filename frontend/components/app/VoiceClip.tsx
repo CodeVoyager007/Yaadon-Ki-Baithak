@@ -3,6 +3,7 @@
 import { Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getClip } from "@/lib/audio-store";
+import { signedVoiceUrl } from "@/lib/data/remote";
 import { seeded } from "@/lib/random";
 
 function fmt(ms?: number) {
@@ -13,12 +14,23 @@ function fmt(ms?: number) {
 
 /**
  * Plays one of the elder's real recordings. The waveform fills as it plays.
- * Clips live on this device until Supabase Storage is connected.
+ * The clip saved on this device plays first; a book restored on another
+ * device streams the same voice from the family's private storage.
  */
-export function VoiceClip({ clipId, durationMs, label = "Play their voice" }: { clipId?: string; durationMs?: number; label?: string }) {
+export function VoiceClip({
+  clipId,
+  audioPath,
+  durationMs,
+  label = "Play their voice",
+}: {
+  clipId?: string;
+  audioPath?: string;
+  durationMs?: number;
+  label?: string;
+}) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [missing, setMissing] = useState(!clipId);
+  const [missing, setMissing] = useState(!clipId && !audioPath);
   const audio = useRef<HTMLAudioElement | null>(null);
   const url = useRef<string | null>(null);
 
@@ -31,8 +43,8 @@ export function VoiceClip({ clipId, durationMs, label = "Play their voice" }: { 
     }
     setPlaying(false);
     setProgress(0);
-    setMissing(!clipId);
-  }, [clipId]);
+    setMissing(!clipId && !audioPath);
+  }, [clipId, audioPath]);
 
   useEffect(
     () => () => {
@@ -48,13 +60,19 @@ export function VoiceClip({ clipId, durationMs, label = "Play their voice" }: { 
       return;
     }
     if (!audio.current) {
-      const blob = clipId ? await getClip(clipId) : null;
-      if (!blob) {
+      const blob = clipId ? await getClip(clipId).catch(() => null) : null;
+      let src: string | null = null;
+      if (blob) {
+        url.current = URL.createObjectURL(blob);
+        src = url.current;
+      } else if (audioPath) {
+        src = await signedVoiceUrl(audioPath).catch(() => null);
+      }
+      if (!src) {
         setMissing(true);
         return;
       }
-      url.current = URL.createObjectURL(blob);
-      const a = new Audio(url.current);
+      const a = new Audio(src);
       a.ontimeupdate = () => setProgress(a.duration && Number.isFinite(a.duration) ? a.currentTime / a.duration : a.currentTime / ((durationMs ?? 1) / 1000));
       a.onplay = () => setPlaying(true);
       a.onpause = () => setPlaying(false);
@@ -67,7 +85,7 @@ export function VoiceClip({ clipId, durationMs, label = "Play their voice" }: { 
     await audio.current.play().catch(() => setMissing(true));
   }
 
-  const r = seeded((clipId ?? "x").split("").reduce((n, c) => n + c.charCodeAt(0), 0));
+  const r = seeded((clipId ?? audioPath ?? "x").split("").reduce((n, c) => n + c.charCodeAt(0), 0));
   const bars = Array.from({ length: 28 }, () => 22 + r() * 78);
 
   return (

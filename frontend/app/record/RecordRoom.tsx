@@ -16,6 +16,8 @@ import { askNext, speak, stopSpeaking, transcribe } from "@/lib/api";
 import { putClip } from "@/lib/audio-store";
 import { elderLabel, loadBook, newId, updateElder, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
 import { listChapters, saveSession, type Session, type Turn } from "@/lib/chapter-store";
+import { syncBook } from "@/lib/data/sync";
+import { hasSupabase } from "@/lib/supabase/client";
 import { THEMES } from "@/lib/themes";
 import { useRecorder } from "@/lib/use-recorder";
 
@@ -40,16 +42,26 @@ export function RecordRoom() {
   const [phase, setPhase] = useState<Phase>("loading");
 
   useEffect(() => {
-    const b = loadBook();
-    const elderParam = params.get("elder");
-    const e = b ? (b.elders.find((x) => x.id === elderParam) ?? (elderParam ? null : b.elders[0] ?? null)) : null;
-    setBook(b);
-    setElder(e);
-    if (elderParam && !e) {
-      setPhase("not-found");
-    } else {
-      setPhase(e && !e.consentAt ? "consent" : "session");
-    }
+    let live = true;
+    void (async () => {
+      // With accounts, the book on this device opens only for its signed-in owner; anyone else practises.
+      const userId = hasSupabase ? await syncBook() : null;
+      if (!live) return;
+      const saved = loadBook();
+      const b = hasSupabase && (!userId || (saved?.ownerId && saved.ownerId !== userId)) ? null : saved;
+      const elderParam = params.get("elder");
+      const e = b ? (b.elders.find((x) => x.id === elderParam) ?? (elderParam ? null : b.elders[0] ?? null)) : null;
+      setBook(b);
+      setElder(e);
+      if (elderParam && !e) {
+        setPhase("not-found");
+      } else {
+        setPhase(e && !e.consentAt ? "consent" : "session");
+      }
+    })();
+    return () => {
+      live = false;
+    };
   }, [params]);
 
   const live = Boolean(book && elder);

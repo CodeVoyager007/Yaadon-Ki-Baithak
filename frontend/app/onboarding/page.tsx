@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { AppBackdrop } from "@/components/app/AppBackdrop";
 import { BirdySays } from "@/components/app/SpeechBubble";
@@ -10,7 +10,8 @@ import { PixelLantern } from "@/components/effects/PixelLantern";
 import { SceneByName } from "@/components/illustrations/SceneByName";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 import { useSound } from "@/components/sound/SoundProvider";
-import { newId, saveBook, type Theme } from "@/lib/book-store";
+import { loadBook, newId, saveBook, type Theme } from "@/lib/book-store";
+import { syncBook } from "@/lib/data/sync";
 import { cleanElder, EMPTY_ELDER, ElderFields, TextInput, type ElderDraft } from "@/components/app/Fields";
 import { hasSupabase, supabaseBrowser } from "@/lib/supabase/client";
 import { THEMES } from "@/lib/themes";
@@ -22,6 +23,17 @@ export default function OnboardingPage() {
   const { chirp } = useSound();
   const [step, setStep] = useState(0);
   const [familyName, setFamilyName] = useState("");
+
+  // Someone who already has a book (another phone, or before signing out) goes straight to it.
+  useEffect(() => {
+    let live = true;
+    void syncBook().then(() => {
+      if (live && loadBook()) router.replace("/book");
+    });
+    return () => {
+      live = false;
+    };
+  }, [router]);
   const [elder, setElder] = useState<ElderDraft>(EMPTY_ELDER);
   const [theme, setTheme] = useState<Theme | null>(null);
   const [finishing, setFinishing] = useState(false);

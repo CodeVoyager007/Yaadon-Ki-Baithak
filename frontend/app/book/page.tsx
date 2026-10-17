@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Check, Copy, Mic, Plus, Share2, Upload, X } from "lucide-react";
+import { Check, Copy, Download, Mic, Plus, Share2, Upload, X } from "lucide-react";
 import { AJRAK_BORDER, AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BookNav } from "@/components/app/BookNav";
 import { SceneByName, SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { Birdy } from "@/components/mascots/Birdy";
-import { claimBook, elderLabel, loadBook, newShareToken, updateBook, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
+import { elderLabel, loadBook, newShareToken, updateBook, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
 import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { pushShareLink } from "@/lib/data/remote";
-import { hasSupabase, supabaseBrowser } from "@/lib/supabase/client";
+import { syncBook } from "@/lib/data/sync";
+import { hasSupabase } from "@/lib/supabase/client";
 import { THEMES } from "@/lib/themes";
 
 export default function BookPage() {
@@ -25,17 +26,9 @@ export default function BookPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // Drop a book saved by a different account on this device (shared family phone).
-      if (hasSupabase) {
-        try {
-          const {
-            data: { user },
-          } = await supabaseBrowser().auth.getUser();
-          if (user) claimBook(user.id);
-        } catch {
-          /* ignore auth check failure */
-        }
-      }
+      // Restore this account's book from Supabase (new phone, cleared browser);
+      // a different account's book on a shared phone is dropped first.
+      await syncBook();
       if (cancelled) return;
       const b = loadBook();
       if (!b) router.replace("/onboarding");
@@ -99,9 +92,11 @@ export default function BookPage() {
                     Record a new story
                   </button>
                 )}
-                <span className="font-pixel rounded-md bg-white/10 px-2.5 py-1 text-sm text-lantern-soft">
-                  {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}
-                </span>
+                {chapters.length > 0 && (
+                  <Link href="/book/print" className="glass-night inline-flex h-14 items-center gap-2 rounded-2xl px-5 font-bold text-moon hover:bg-white/15">
+                    <Download size={18} /> Download PDF
+                  </Link>
+                )}
               </div>
             </div>
           </div>

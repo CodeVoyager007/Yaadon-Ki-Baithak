@@ -6,7 +6,8 @@ import { useState, type FormEvent } from "react";
 import { Birdy, type BirdyMood } from "@/components/mascots/Birdy";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { useSound } from "@/components/sound/SoundProvider";
-import { claimBook, loadBook } from "@/lib/book-store";
+import { loadBook } from "@/lib/book-store";
+import { syncBook } from "@/lib/data/sync";
 import { rememberDemoUser } from "@/lib/auth";
 import { safePath } from "@/lib/safe-path";
 import { demoMode, hasSupabase, supabaseBrowser } from "@/lib/supabase/client";
@@ -101,10 +102,7 @@ export function SignupForm() {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
       }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) claimBook(user.id);
+      await syncBook();
       setMood("happy");
       chirp();
       router.push(nextPath());

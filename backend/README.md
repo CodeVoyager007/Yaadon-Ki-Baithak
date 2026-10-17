@@ -178,9 +178,11 @@ idle and takes about 50 s to wake, which is risky in a live demo unless you open
 
 Schema and RLS: `supabase/migrations/0001_init.sql` (apply with the SQL editor or
 `supabase db push`), plus `0002_turn_duration.sql` (turn durations and the
-foreign-key indexes the share read filters on) and `0003_hardening.sql` (only
+foreign-key indexes the share read filters on), `0003_hardening.sql` (only
 signed-in users may call `owns_family()`, and share tokens must be 24-64 random
-characters).
+characters) and `0004_restore.sql` (the extra fields a book needs to come back
+on another device: topic, storyteller photo, session end, `unclear`, `scene`,
+draft flag).
 
 ```
 families 1─* elders 1─* sessions 1─* turns
@@ -195,8 +197,9 @@ share_links → families        storage: audio/, images/ (private, {family_id}/�
 - The frontend writes families, elders, sessions, turns and chapters itself
   with the user's own session (`frontend/lib/data/remote.ts`, local-first
   dual-write). The backend only adds voice clips and paintings to storage.
-- `unclear` and `scene` live on the device copy for now; the `chapters` table
-  has no columns for them yet.
+- On sign-in the frontend reads the whole book back the same way
+  (`frontend/lib/data/sync.ts`), so signing out, a new phone or a cleared
+  browser never loses it. Paintings and voices are re-signed from their paths.
 
 ## 8. Rules
 

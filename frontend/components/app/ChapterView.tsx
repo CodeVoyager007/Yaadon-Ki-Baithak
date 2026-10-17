@@ -42,7 +42,16 @@ export function ChapterView({ stored, elder }: { stored: StoredChapter; elder: E
       <div className="rounded-[34px] p-[8px]" style={AJRAK_BORDER}>
         <div className="relative overflow-hidden rounded-[27px] bg-dusk">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img} alt="" className="h-[300px] w-full object-cover sm:h-[380px]" />
+          <img
+            src={img}
+            alt=""
+            onError={(e) => {
+              // An expired painting link falls back to the topic's own picture.
+              const fallback = SCENE_IMAGES[stored.scene].src;
+              if (!e.currentTarget.src.endsWith(fallback)) e.currentTarget.src = fallback;
+            }}
+            className="h-[300px] w-full object-cover sm:h-[380px]"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-raat via-raat/40 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-9">
             <div className="flex flex-wrap items-center gap-2">
@@ -133,7 +142,7 @@ export function ChapterView({ stored, elder }: { stored: StoredChapter; elder: E
           )}
           <figcaption className="mt-2 text-sm text-moon/60">{who}, in their own words</figcaption>
           <div className="mx-auto mt-5 max-w-sm">
-            <VoiceClip clipId={quoteTurn?.clipId} durationMs={quoteTurn?.durationMs} label="Hear this line" />
+            <VoiceClip clipId={quoteTurn?.clipId} audioPath={quoteTurn?.audioPath} durationMs={quoteTurn?.durationMs} label="Hear this line" />
           </div>
         </figure>
       )}
@@ -156,7 +165,7 @@ export function ChapterView({ stored, elder }: { stored: StoredChapter; elder: E
                   {t.text.trim() || <span className="text-moon/50">Voice only, no transcript yet.</span>}
                 </p>
                 <div className="mt-3">
-                  <VoiceClip clipId={t.clipId} durationMs={t.durationMs} />
+                  <VoiceClip clipId={t.clipId} audioPath={t.audioPath} durationMs={t.durationMs} />
                 </div>
               </li>
             );

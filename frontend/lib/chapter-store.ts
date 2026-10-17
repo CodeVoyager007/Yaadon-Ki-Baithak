@@ -98,6 +98,25 @@ export function deleteChapter(id: string) {
   );
 }
 
+/**
+ * Adds sessions and chapters read back from Supabase to this device. What is
+ * already here wins (it may hold newer edits and the voice clips); a chapter
+ * here only takes the freshly signed painting URL.
+ */
+export function restoreChapters(sessions: Session[], chapters: StoredChapter[]) {
+  const localSessions = read<Session>(SESSIONS);
+  const haveSession = new Set(localSessions.map((s) => s.id));
+  write(SESSIONS, [...localSessions, ...sessions.filter((s) => !haveSession.has(s.id))]);
+
+  const fresh = new Map(chapters.map((c) => [c.id, c]));
+  const local = read<StoredChapter>(CHAPTERS).map((c) => {
+    const remote = fresh.get(c.id);
+    fresh.delete(c.id);
+    return remote?.imageUrl && (!c.imageUrl || c.imageUrl.includes("/storage/v1/object/sign/")) ? { ...c, imageUrl: remote.imageUrl } : c;
+  });
+  write(CHAPTERS, [...local, ...fresh.values()]);
+}
+
 /** Total length of the elder's real voice in a set of turns, like "3 min 20 s". */
 export function voiceLength(turns: Turn[]) {
   const ms = turns.filter((t) => t.role === "elder").reduce((sum, t) => sum + (t.durationMs ?? 0), 0);

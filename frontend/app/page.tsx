@@ -13,8 +13,8 @@ import { StoryShelf } from "@/components/home/StoryShelf";
 /**
  * The home page: Dadi's book in the hero (write to it, it writes back), then
  * the night painting, how it works, why it matters, sample chapters and the
- * promise. Sections lift into view once as you scroll; the intro greets a
- * tab's first visit only.
+ * promise. Sections lift into view once as you scroll; the intro plays on
+ * every real page load and can be skipped.
  */
 export default function HomePage() {
   return (

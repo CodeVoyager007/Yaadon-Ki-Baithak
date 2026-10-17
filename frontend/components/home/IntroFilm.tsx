@@ -27,15 +27,19 @@ const TITLE_MS = 3200;
 
 type Phase = "off" | "gate" | "logo" | number | "title" | "exit";
 
-const SEEN_KEY = "baithak-intro-seen";
+/** True after the gate has opened once in this document: route changes keep
+ * the module, a fresh load (or refresh) replaces it, so the intro shows on
+ * every real load but never when someone simply clicks "Home". */
+let introPlayedThisLoad = false;
 
-/** True once per browser tab: the gate greets a first visit to "/", then
- * stays out of the way on refreshes and on "Home" clicks from other pages. */
-function firstVisitToHome() {
+/** Did this document (not this route) open on the home page? The navigation
+ * entry keeps the URL the tab was loaded with, even after client-side route
+ * changes — so "book → Home" never counts as a load, while a direct visit or
+ * refresh of "/" always does. */
+function loadedOnHome() {
   try {
-    if (window.location.pathname !== "/" || sessionStorage.getItem(SEEN_KEY)) return false;
-    sessionStorage.setItem(SEEN_KEY, "1");
-    return true;
+    const [nav] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+    return new URL(nav?.name ?? window.location.href).pathname === "/";
   } catch {
     return false;
   }
@@ -63,7 +67,10 @@ export function IntroFilm() {
     timers.current.push(window.setTimeout(() => setPhase("off"), 900));
   }, []);
 
-  // It plays when asked for (the footer button), and once on a tab's first visit.
+  // It plays when asked for (the footer button), and also on a real page load
+  // of the site. Clicking "Home" from another page is navigation, not a load,
+  // so the film stays out of the way — a module-level flag survives route
+  // changes (same bundle) but resets on every fresh load/refresh.
   useEffect(() => {
     if (reduce) return;
     const play = () => {
@@ -73,7 +80,10 @@ export function IntroFilm() {
       });
       setPhase("gate");
     };
-    if (firstVisitToHome()) play();
+    if (!introPlayedThisLoad && loadedOnHome()) {
+      introPlayedThisLoad = true;
+      play();
+    }
     window.addEventListener("baithak:intro", play);
     return () => window.removeEventListener("baithak:intro", play);
   }, [reduce]);

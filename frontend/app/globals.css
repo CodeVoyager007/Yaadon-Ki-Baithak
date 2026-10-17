@@ -304,3 +304,14 @@ body {
 @keyframes fade-in {
   from { opacity: 0; }
 }
+
+/* The family book as paper (app/book/print): one chapter per A4 page. */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html, body { background: #fff !important; color-scheme: light; }
+  .print-page { break-after: page; min-height: 0 !important; padding: 0 !important; background: #fff !important; box-shadow: none !important; border-radius: 0 !important; }
+  .print-cover { min-height: 270mm !important; }
+  .print-page:last-child { break-after: auto; }
+  .print-page img, .print-page blockquote { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
