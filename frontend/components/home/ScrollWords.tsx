@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * A line that lights up word by word as it scrolls through the screen,
@@ -12,8 +12,12 @@ export function ScrollWords({ text, className }: { text: string; className?: str
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "start 0.3"] });
   const words = text.split(" ");
+  // Decided after hydration: the server can't know the motion preference, and
+  // both must render the same first frame.
+  const [still, setStill] = useState(false);
+  useEffect(() => setStill(Boolean(reduce)), [reduce]);
 
-  if (reduce) return <h2 className={className}>{text}</h2>;
+  if (still) return <h2 className={className}>{text}</h2>;
 
   return (
     <h2 ref={ref} className={className} aria-label={text}>

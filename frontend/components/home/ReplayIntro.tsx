@@ -12,7 +12,7 @@ export function ReplayIntro() {
       }}
       className="inline-flex items-center gap-2 text-sm font-bold text-lantern-soft hover:underline motion-reduce:hidden"
     >
-      <Clapperboard size={16} /> Watch the intro again
+      <Clapperboard size={16} /> Watch the intro
     </button>
   );
 }

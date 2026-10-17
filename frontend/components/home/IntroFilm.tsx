@@ -23,12 +23,11 @@ const SHOTS: Shot[] = [
 ];
 const LOGO_MS = 2700;
 const TITLE_MS = 3200;
-const SEEN_KEY = "baithak-intro-seen";
 
 type Phase = "off" | "gate" | "logo" | number | "title" | "exit";
 
 /**
- * A studio-style intro that plays once per visit: a tap to begin (so the
+ * A studio-style intro, played from the footer's "Watch the intro": a tap to begin (so the
  * sound can play), a "ta-dum" logo, a teaser of hard cuts, then the title.
  * Always skippable. Never shown to people who prefer reduced motion.
  */
@@ -46,31 +45,21 @@ export function IntroFilm() {
   const close = useCallback(() => {
     clear();
     setPhase("exit");
-    try {
-      sessionStorage.setItem(SEEN_KEY, "1");
-    } catch {
-      /* ignore */
-    }
     timers.current.push(window.setTimeout(() => setPhase("off"), 900));
   }, []);
 
-  // Decide whether to show it, and let the footer replay it.
+  // It plays only when asked for (the footer button): a first visit goes straight to the page.
   useEffect(() => {
     if (reduce) return;
-    let seen = false;
-    try {
-      seen = sessionStorage.getItem(SEEN_KEY) === "1";
-    } catch {
-      /* ignore */
-    }
-    if (!seen) setPhase("gate");
-    const replay = () => setPhase("gate");
-    window.addEventListener("baithak:intro", replay);
-    // warm the images while the visitor reads the gate
-    [...SHOTS.map((s) => s.img), skyline.src].forEach((src) => {
-      if (src) new Image().src = src;
-    });
-    return () => window.removeEventListener("baithak:intro", replay);
+    const play = () => {
+      // warm the images while the visitor reads the gate
+      [...SHOTS.map((s) => s.img), skyline.src].forEach((src) => {
+        if (src) new Image().src = src;
+      });
+      setPhase("gate");
+    };
+    window.addEventListener("baithak:intro", play);
+    return () => window.removeEventListener("baithak:intro", play);
   }, [reduce]);
 
   // Lock page scroll while it plays; Escape skips.

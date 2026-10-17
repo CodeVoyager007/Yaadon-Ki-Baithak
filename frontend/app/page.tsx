@@ -1,34 +1,34 @@
-import { CinemaFrame } from "@/components/home/CinemaFrame";
-import { Hero } from "@/components/home/Hero";
+import { Conversation } from "@/components/home/Conversation";
+import { EveningSky } from "@/components/home/EveningSky";
+import { HomeHero } from "@/components/home/HomeHero";
 import { IntroFilm } from "@/components/home/IntroFilm";
-import { Trailer } from "@/components/home/Trailer";
-import { HowItWorks } from "@/components/home/HowItWorks";
 import { Promise } from "@/components/home/Promise";
+import { QuietLine } from "@/components/home/QuietLine";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteNav } from "@/components/home/SiteNav";
 import { StoryShelf } from "@/components/home/StoryShelf";
-import { Atmosphere } from "@/components/scene/Atmosphere";
-import { StarDust } from "@/components/scene/StarDust";
 
+/**
+ * Ek Shaam: the home page is one evening. Sunset in the hero, dusk on the
+ * quiet line, a sitting with Dadi at nightfall, then the stars and lanterns.
+ * The sky behind it all is one static gradient, so scrolling down is the
+ * evening passing. Nothing pins the page; the conversation's chat panel is
+ * sticky beside its steps, which keep scrolling.
+ */
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#100f2e]">
+    <div className="relative min-h-screen bg-[#0a0a24]">
+      <EveningSky />
       <IntroFilm />
-      <div className="film-grain" aria-hidden />
       <SiteNav />
-      <CinemaFrame />
-      <main>
-        <Hero />
-        <Trailer />
-        <div className="relative bg-[linear-gradient(180deg,#100f2e_0%,#16173f_45%,#14133a_100%)]">
-          <Atmosphere />
-          <StarDust count={110} />
-          <HowItWorks />
-          <StoryShelf />
-          <Promise />
-        </div>
+      <main className="relative">
+        <HomeHero />
+        <QuietLine />
+        <Conversation />
+        <StoryShelf />
+        <Promise />
       </main>
-      <div className="bg-[#14133a]">
+      <div className="relative">
         <SiteFooter />
       </div>
     </div>

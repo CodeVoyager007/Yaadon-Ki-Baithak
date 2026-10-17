@@ -94,7 +94,7 @@ export class NightSound {
   }
 
   /**
-   * Cinematic sound effects for the intro and trailer. They work even when
+   * Cinematic sound effects for the intro film. They work even when
    * the piano is off, as long as the visitor has clicked once.
    *  - "hit": the deep two-beat "ta-dum" of a studio logo
    *  - "whoosh": a soft air sweep on each cut

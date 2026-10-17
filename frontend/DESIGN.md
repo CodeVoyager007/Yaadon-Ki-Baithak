@@ -4,7 +4,7 @@ Format follows VoltAgent's awesome-design-md (9 sections). Give this file to any
 
 ## 1. Visual theme and atmosphere
 
-"Shaam ki Kahani", an evening story. The home page is Karachi at night: a painted skyline with Mazar-e-Quaid glowing in the middle, Empress Market's clock tower, old Saddar rooftops with water tanks and wedding lights, pixel stars and paper lanterns above. The whole app stays at night: deep indigo rooms lit by soft pools of lantern light, with frosted glass panels.
+"Shaam ki Kahani", an evening story. The home page is one evening passing as you scroll (see Layout): sunset over a painted skyline with Mazar-e-Quaid glowing in the middle, Empress Market's clock tower, old Saddar rooftops with water tanks and wedding lights, pixel stars and paper lanterns above. The whole app stays at night: deep indigo rooms lit by soft pools of lantern light, with frosted glass panels.
 
 Three ingredients, always together:
 - **Glass**: frosted night-glass panels floating over light. One stronger glass for the nav (`glass-nav`).
@@ -60,7 +60,8 @@ All fonts are self-hosted with @fontsource-variable. Sentence case everywhere. N
 ## 5. Layout
 
 - Max widths: 72rem marketing, 72rem dashboard, 48rem forms.
-- Home: hero (text left, chapter card right) / how it works (3 steps, real sequence) / story shelf (horizontal snap scroll) / promise / footer.
+- Home, "Ek Shaam" (one evening): hero at sunset (text left, Hudhud perched on a swaying lantern right) / the quiet line (lit word by word) / the conversation (a sample sitting with Dadi Zubaida: steps scroll on the left, a sticky chat panel on the right grows with each step; phones get a chat snapshot under each step) / story shelf (horizontal snap scroll) / promise / closing card whose lanterns light up / footer.
+- Home scroll rules: **nothing pins the page**; the only sticky thing is the chat panel beside steps that keep scrolling. The sky is one static gradient behind the whole page (`EveningSky`), sunset at the top to night at the bottom, so scrolling is the evening passing with no scroll code. Reveals use the `.reveal` class: CSS scroll-driven animations as progressive enhancement, visible by default, off for reduced motion. The intro film plays only from the footer's "Watch the intro".
 - App: dark indigo backdrop with blurred lantern pools and an ajrak stripe at the top. Header (`AppHeader`) = wordmark left, sound and account right.
 - Elder screens (/record): center aligned, one question at a time, giant touch targets.
 
@@ -89,7 +90,7 @@ Don't:
 ## 8. Responsive
 
 - Test at 390, 768, 1440.
-- Hero stacks on mobile: text first, card after.
+- Hero on mobile: the lantern and Hudhud (at 60%) sit above the headline.
 - Elder buttons stay at least 64px tall on every size, Urdu text at least 18px.
 - Shelf keeps scroll-snap on touch, buttons on desktop.
 
