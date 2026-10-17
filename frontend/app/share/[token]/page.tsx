@@ -49,12 +49,17 @@ function sceneFor(theme: string): StoredChapter["scene"] {
 }
 
 export default function SharePage() {
-  const { token } = useParams<{ token: string }>();
+  const params = useParams<{ token?: string | string[] }>();
+  const token = typeof params?.token === "string" ? params.token : Array.isArray(params?.token) ? params.token[0] ?? "" : "";
   const [book, setBook] = useState<FamilyBook | null | undefined>(undefined);
   const [chapters, setChapters] = useState<StoredChapter[]>([]);
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!token) {
+      setBook(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
       // First choice: the server, which validates the token and reads the book.

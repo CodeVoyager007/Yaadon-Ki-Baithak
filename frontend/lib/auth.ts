@@ -82,12 +82,17 @@ export function useAuth() {
     if (hasSupabase) {
       const supabase = supabaseBrowser();
       let live = true;
-      void supabase.auth.getSession().then(({ data }) => {
-        if (live) {
-          setUser(fromSession(data.session));
-          setReady(true);
-        }
-      });
+      void supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          if (live) {
+            setUser(fromSession(data.session));
+            setReady(true);
+          }
+        })
+        .catch(() => {
+          if (live) setReady(true);
+        });
       const sub = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(fromSession(session));
       });

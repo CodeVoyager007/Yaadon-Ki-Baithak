@@ -8,10 +8,14 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = safePath(searchParams.get("next"));
 
-  const supabase = await supabaseServer();
-  if (code && supabase) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+  try {
+    const supabase = await supabaseServer();
+    if (code && supabase) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) return NextResponse.redirect(`${origin}${next}`);
+    }
+  } catch (err) {
+    console.error("Auth callback error:", err);
   }
   return NextResponse.redirect(`${origin}/signup?error=callback`);
 }
