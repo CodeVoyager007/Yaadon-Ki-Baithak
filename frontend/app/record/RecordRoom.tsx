@@ -303,7 +303,9 @@ export function RecordRoom() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => router.push(`/book/writing?session=${session.current!.id}`)}
+                  onClick={() => {
+                    if (session.current) router.push(`/book/writing?session=${session.current.id}`);
+                  }}
                   className="btn-lantern pixel-corners mt-2 inline-flex h-14 items-center px-7 font-extrabold"
                 >
                   Make the chapter
