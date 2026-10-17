@@ -1,8 +1,10 @@
 "use client";
 
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
-import { useRef, useState } from "react";
+import { motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "motion/react";
+import { useRef } from "react";
 import { useSound } from "@/components/sound/SoundProvider";
+import { useCinema } from "@/lib/use-cinema";
+import { SceneDip } from "./SceneDip";
 import dholki from "@/components/illustrations/trailer/dholki.jpg";
 import eid from "@/components/illustrations/trailer/eid.jpg";
 import listen from "@/components/illustrations/trailer/listen.jpg";
@@ -17,58 +19,71 @@ const CUTS = [
 const N = CUTS.length;
 
 /**
- * The scroll trailer. The screen holds while each bit of scrolling cuts to
- * the next full-screen shot: it opens from a thin slit of light, pushes in,
- * and the line slams onto the screen. A whoosh plays on every cut.
+ * The scroll trailer. On large screens the screen holds while each bit of
+ * scrolling cuts to the next full-screen shot: it opens from a thin slit of
+ * light, pushes in, and the line slams onto the screen. A whoosh plays on
+ * every cut. The letterbox, scene name and shot counter come from the shared
+ * CinemaFrame, and the scene enters and leaves through black like the others.
+ * Phones and reduced motion get the shots stacked; CSS picks the version
+ * (same pattern as How it works), so nothing jumps after load.
  */
 export function Trailer() {
-  const reduce = useReducedMotion();
+  return (
+    <>
+      <TrailerFilm />
+      <TrailerStill />
+    </>
+  );
+}
+
+function TrailerFilm() {
+  const cinema = useCinema();
   const track = useRef<HTMLElement>(null);
   const { scrollYProgress: p } = useScroll({ target: track, offset: ["start start", "end end"] });
   const { sfx } = useSound();
-  const [cut, setCut] = useState(-1);
+  const cut = useRef(-1);
   useMotionValueEvent(p, "change", (v) => {
     const next = v <= 0 ? -1 : Math.min(N - 1, Math.floor(v * N * 0.999));
-    if (next !== cut) {
-      if (next > cut && next >= 0) sfx("whoosh");
-      setCut(next);
-    }
+    if (next === cut.current) return;
+    // The hidden film version still reports progress on phones; only play sound when it's on screen.
+    if (cinema && next > cut.current && next >= 0) sfx("whoosh");
+    cut.current = next;
   });
 
-  if (reduce) {
-    return (
-      <section aria-label="Stories worth keeping" className="space-y-2 bg-black">
-        {CUTS.map((c) => (
-          <figure key={c.en} className="relative h-[60vh]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={c.img} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70" />
-            <figcaption className="absolute inset-x-0 bottom-10 text-center">
-              <p className="font-urdu text-4xl leading-[2] text-lantern-soft" dir="rtl" lang="ur">
-                {c.ur}
-              </p>
-              <p className="font-display text-2xl italic text-moon">{c.en}</p>
-            </figcaption>
-          </figure>
-        ))}
-      </section>
-    );
-  }
-
   return (
-    <section ref={track} aria-label="Stories worth keeping" className="relative bg-black" style={{ height: `${N * 90 + 60}vh` }}>
+    <section
+      ref={track}
+      aria-label="Stories worth keeping"
+      data-scene="Stories worth keeping"
+      data-shots={N}
+      className="relative hidden bg-black lg:motion-safe:block"
+      style={{ height: `${N * 90 + 60}vh` }}
+    >
       <div className="sticky top-0 h-[100svh] overflow-hidden">
         {CUTS.map((c, i) => (
           <Cut key={c.en} index={i} p={p} {...c} />
         ))}
-        {/* letterbox */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[9vh] bg-black" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[9vh] bg-black" />
-        {/* shot counter in the letterbox */}
-        <p className="font-pixel absolute bottom-[3vh] left-6 z-40 text-sm text-moon/50">
-          {String(Math.max(0, cut) + 1).padStart(2, "0")} / {String(N).padStart(2, "0")}
-        </p>
-        <p className="absolute bottom-[3vh] right-6 z-40 text-sm text-moon/40">Keep scrolling</p>
+        <SceneDip p={p} target={track} />
       </div>
+    </section>
+  );
+}
+
+function TrailerStill() {
+  return (
+    <section aria-label="Stories worth keeping" className="space-y-2 bg-black lg:motion-safe:hidden">
+      {CUTS.map((c) => (
+        <figure key={c.en} className="relative h-[60vh]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={c.img} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-70" />
+          <figcaption className="absolute inset-x-0 bottom-10 text-center">
+            <p className="font-urdu text-4xl leading-[2] text-lantern-soft" dir="rtl" lang="ur">
+              {c.ur}
+            </p>
+            <p className="font-display text-2xl italic text-moon">{c.en}</p>
+          </figcaption>
+        </figure>
+      ))}
     </section>
   );
 }

@@ -1,8 +1,8 @@
 """Orchestrator: runs the three agents as one team.
 
-Laali (the interviewer) makes the creative decision every turn, including
+Hudhud (the interviewer) makes the creative decision every turn, including
 when the chapter is ready. The orchestrator owns everything around that:
-- the hand-off: when Laali wraps up, the session goes to the story writer;
+- the hand-off: when Hudhud wraps up, the session goes to the story writer;
 - the pipeline: writer, then illustrator, with the writer's scene passed along;
 - failure policy: no chapter means fail honestly (the browser keeps the
   transcript as a draft), but a failed painting still keeps the chapter;

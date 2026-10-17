@@ -2,7 +2,7 @@
 
 An AI agent that interviews grandparents by voice in Urdu and turns their memories into an illustrated family storybook, with their real voice beside every chapter. Built for the NYLP AI Hackathon 2026.
 
-**Laali is an agent that listens, decides, and hands off to two other agents.** Every turn it picks the next question from what the elder just said, slows down when a memory hurts, and decides when the chapter is ready. Then the story writer turns the session into a bilingual chapter using only the elder's words, and the illustrator paints it.
+**Hudhud is an agent that listens, decides, and hands off to two other agents.** Every turn it picks the next question from what the elder just said, slows down when a memory hurts, and decides when the chapter is ready. Then the story writer turns the session into a bilingual chapter using only the elder's words, and the illustrator paints it.
 
 ## Quick start
 
@@ -36,7 +36,7 @@ npm run build          # frontend production build (then npm run typecheck)
 frontend/   Next.js 16 (Vercel). Pages, components, browser stores, Supabase auth.
             lib/api.ts is the only door to the backend; lib/types.ts is the contract.
 backend/    Python + FastAPI (Docker: Hugging Face Spaces / Render).
-  agents/   interviewer (Laali), story writer, illustrator, orchestrator. No keys, no I/O.
+  agents/   interviewer (Hudhud), story writer, illustrator, orchestrator. No keys, no I/O.
   app/      routes, auth, rate limit, Gemini/Cloudflare clients, Supabase storage.
   supabase/ migrations: schema + row level security.
 docs/       setup and team guide, raw art assets.

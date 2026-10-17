@@ -2,7 +2,7 @@
 
 The prompts ask the model to behave; these make sure it did. Cue lists cover
 English, Roman Urdu and Urdu script, and are kept specific on purpose: a false
-"sensitive" only makes Laali gentler, but a false "private info" throws a good
+"sensitive" only makes Hudhud gentler, but a false "private info" throws a good
 question away.
 """
 
@@ -46,7 +46,7 @@ TIRED_CUES = (
     "تھک گیا", "تھک گئی", "تھک گئ", "بس کرو", "بس کریں", "کافی ہے", "پھر کبھی", "آرام کرنا",
 )
 
-# Things Laali must never ask for. Matched against Laali's own question, not the elder's answer.
+# Things Hudhud must never ask for. Matched against Hudhud's own question, not the elder's answer.
 PRIVATE_CUES = (
     "phone number", "mobile number", "cnic", "id card", "identity card", "home address", "your address",
     "bank account", "account number", "password", "pin code", "salary", "how much money",

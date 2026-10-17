@@ -9,7 +9,7 @@ import { SoundProvider } from "@/components/sound/SoundProvider";
 import { PixelSparkles } from "@/components/effects/PixelSparkles";
 
 const description =
-  "Laali sits with your grandparents, asks gentle questions in their own language, and turns their memories into an illustrated family storybook.";
+  "Hudhud sits with your grandparents, asks gentle questions in their own language, and turns their memories into an illustrated family storybook.";
 
 export const metadata: Metadata = {
   // Absolute links for WhatsApp and social previews. Set NEXT_PUBLIC_SITE_URL on Vercel.

@@ -49,7 +49,7 @@ async def turn(request: Request):
     return {
         **out.decision.model_dump(by_alias=True),
         "handoff": out.handoff,
-        # What Laali noticed before deciding; drives the record screen's notebook panel.
+        # What Hudhud noticed before deciding; drives the record screen's notebook panel.
         "signals": asdict(out.signals) if out.signals else None,
         "trace": [t.model_dump(by_alias=True) for t in out.trace],
     }

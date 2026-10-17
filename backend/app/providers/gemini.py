@@ -93,7 +93,7 @@ async def transcribe(audio: bytes, mime_type: str, lang: str) -> str:
 
 
 async def speak(text: str, voice: str = "Kore") -> bytes:
-    """Laali's question voice as a WAV file. Only ever Laali: the elder's voice is never cloned."""
+    """Hudhud's question voice as a WAV file. Only ever Hudhud: the elder's voice is never cloned."""
     reply = await _generate(
         settings().gemini_tts_model,
         {

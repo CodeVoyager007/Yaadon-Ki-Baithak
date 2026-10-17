@@ -1,6 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion, type TargetAndTransition, type Transition } from "motion/react";
+import { motion, useAnimate, useReducedMotion, type TargetAndTransition, type Transition } from "motion/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BirdyEyes } from "./BirdyEyes";
 import birdyImage from "./birdy.webp";
 
 export type BirdyMood = "idle" | "flying" | "happy" | "listening" | "gentle";
@@ -12,7 +14,12 @@ type Props = {
   title?: string;
   /** Face left instead of right. */
   flip?: boolean;
+  /** Change this number to make his eyes widen (the double take) on demand. */
+  surprise?: number;
 };
+
+/** Moods he reacts to with a double take when he switches into them. */
+const TAKE_ON: BirdyMood[] = ["listening", "happy"];
 
 const MOODS: Record<BirdyMood, { animate: TargetAndTransition; transition: Transition }> = {
   // slow breathing
@@ -43,12 +50,35 @@ const MOODS: Record<BirdyMood, { animate: TargetAndTransition; transition: Trans
 };
 
 /**
- * Laali, the storyteller bird. A cut-out of the team's chosen bird
+ * Hudhud, the storyteller bird. A cut-out of the team's chosen bird
  * (birdy.webp, next to this file) brought to life with motion instead of drawing.
+ * His eyes are vector (BirdyEyes): he blinks while idle, lowers his lids when
+ * gentle, and does a classic wide-eyed double take when he first appears,
+ * starts listening, gets happy, or when `surprise` changes.
  */
-export function Birdy({ mood = "idle", size = 160, className, title = "Laali", flip = false }: Props) {
+export function Birdy({ mood = "idle", size = 160, className, title = "Hudhud", flip = false, surprise = 0 }: Props) {
   const reduce = useReducedMotion();
   const m = MOODS[mood];
+  const [take, setTake] = useState(0);
+  const [body, animateBody] = useAnimate<HTMLSpanElement>();
+
+  // A take on first appearance, on switching into listening/happy, and on demand.
+  const lastMood = useRef<BirdyMood | null>(null);
+  useEffect(() => {
+    const prev = lastMood.current;
+    lastMood.current = mood;
+    if (mood === "flying") return;
+    if (prev === null || prev === "flying" || (prev !== mood && TAKE_ON.includes(mood))) setTake((t) => t + 1);
+  }, [mood]);
+  useEffect(() => {
+    if (surprise) setTake((t) => t + 1);
+  }, [surprise]);
+
+  // The body jolts up and stretches a little at the moment the eyes pop.
+  const onPop = useCallback(() => {
+    if (!body.current) return;
+    void animateBody(body.current, { y: [0, -0.05 * size, 0], scaleY: [1, 1.06, 1], scaleX: [1, 0.97, 1] }, { duration: 0.42, ease: "easeOut" });
+  }, [animateBody, body, size]);
 
   return (
     <span
@@ -75,16 +105,19 @@ export function Birdy({ mood = "idle", size = 160, className, title = "Laali", f
         animate={reduce ? undefined : m.animate}
         transition={m.transition}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={birdyImage.src}
-          alt=""
-          width={size}
-          height={size}
-          draggable={false}
-          decoding="async"
-          className="h-full w-full select-none object-contain drop-shadow-[0_10px_18px_rgba(20,10,30,0.35)]"
-        />
+        <span ref={body} className="absolute inset-0 block" style={{ transformOrigin: "50% 85%" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={birdyImage.src}
+            alt=""
+            width={size}
+            height={size}
+            draggable={false}
+            decoding="async"
+            className="h-full w-full select-none object-contain drop-shadow-[0_10px_18px_rgba(20,10,30,0.35)]"
+          />
+          <BirdyEyes take={take} look={mood === "gentle" ? "soft" : "open"} onPop={onPop} />
+        </span>
       </motion.span>
     </span>
   );

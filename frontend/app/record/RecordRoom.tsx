@@ -61,10 +61,10 @@ export function RecordRoom() {
   const rec = useRecorder(lang);
   const [question, setQuestion] = useState<Question>(themeInfo.firstQuestion);
   const [thinking, setThinking] = useState(false);
-  /** The interviewer flagged the last answer as painful: Laali stays gentle until the next answer starts. */
+  /** The interviewer flagged the last answer as painful: Hudhud stays gentle until the next answer starts. */
   const [gentle, setGentle] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  /** Every decision this sitting, for Laali's notebook. */
+  /** Every decision this sitting, for Hudhud's notebook. */
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const session = useRef<Session | null>(null);
 
@@ -237,11 +237,11 @@ export function RecordRoom() {
             </button>
             <p className="mt-4 text-lg font-bold" aria-live="polite">
               {thinking
-                ? "Laali is thinking of the next question"
+                ? "Hudhud is thinking of the next question"
                 : rec.status === "asking"
                   ? "Allow the microphone to begin"
                   : recording
-                    ? "Laali is listening. Tap the lamp when you finish."
+                    ? "Hudhud is listening. Tap the lamp when you finish."
                     : "Tap the lamp and start talking"}
             </p>
             {recording && rec.caption && (
@@ -289,7 +289,7 @@ export function RecordRoom() {
             {live && answers > 0 && session.current ? (
               <>
                 <p className="max-w-sm text-moon/70">
-                  {answers} {answers === 1 ? "answer" : "answers"} saved in {who}&apos;s own voice. Laali can turn them into a chapter now.
+                  {answers} {answers === 1 ? "answer" : "answers"} saved in {who}&apos;s own voice. Hudhud can turn them into a chapter now.
                 </p>
                 <button
                   type="button"

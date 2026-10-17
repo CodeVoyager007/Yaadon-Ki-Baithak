@@ -3,6 +3,7 @@
 import { motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { AJRAK_BORDER } from "@/components/app/AppBackdrop";
+import { SceneDip } from "./SceneDip";
 import howBook from "@/components/illustrations/scenes/how-book.jpg";
 import howChai from "@/components/illustrations/scenes/how-chai.jpg";
 import howListen from "@/components/illustrations/scenes/how-listen.jpg";
@@ -14,8 +15,8 @@ const STEPS = [
     art: howChai,
   },
   {
-    title: "They talk, Laali listens",
-    body: "Laali asks one gentle question at a time, in Urdu, and follows the details they mention. No typing, no reading.",
+    title: "They talk, Hudhud listens",
+    body: "Hudhud asks one gentle question at a time, in Urdu, and follows the details they mention. No typing, no reading.",
     art: howListen,
   },
   {
@@ -104,7 +105,7 @@ function HowItWorksClassic() {
   );
 }
 
-const URDU_STEPS = ["مل کر بیٹھیں", "وہ بولیں، لالی سنے", "ایک نیا باب"];
+const URDU_STEPS = ["مل کر بیٹھیں", "وہ بولیں، ہدہد سنے", "ایک نیا باب"];
 
 export function HowItWorks() {
   return (
@@ -128,8 +129,9 @@ function HowItWorksFilm() {
   const progress = useTransform(p, [0.02, 0.98], [0, 1]);
 
   return (
-    <section ref={track} aria-label="How it works" className="relative hidden h-[330vh] lg:motion-safe:block">
+    <section ref={track} aria-label="How it works" data-scene="How it works" className="relative hidden h-[330vh] lg:motion-safe:block">
       <div className="how-film sticky top-0 flex h-[100svh] items-center overflow-hidden pt-16">
+        <SceneDip p={p} target={track} />
         <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-center gap-16 px-5">
           {/* the film frame */}
           <div className="mx-auto w-full max-w-[min(100%,72vh)] rounded-[36px] p-[8px] shadow-[0_40px_80px_-40px_rgba(5,5,30,0.9)]" style={AJRAK_BORDER}>

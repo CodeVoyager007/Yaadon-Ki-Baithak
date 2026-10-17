@@ -17,7 +17,7 @@ const PROMISES = [
   {
     icon: BookOpenCheck,
     title: "Only their words",
-    body: "Laali never adds names, dates or events they didn't say. Anything unclear is marked, not guessed.",
+    body: "Hudhud never adds names, dates or events they didn't say. Anything unclear is marked, not guessed.",
   },
   {
     icon: LockKeyhole,
@@ -40,7 +40,7 @@ export function Promise() {
         };
 
   return (
-    <section id="promise" className="relative scroll-mt-24 px-5 py-28">
+    <section id="promise" data-film-end className="relative scroll-mt-24 px-5 py-28">
       <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[1fr_1fr] lg:items-center">
         <div>
           <p className="font-urdu mb-3 text-2xl leading-[2] text-lantern-soft" dir="rtl" lang="ur" style={{ textAlign: "left" }}>

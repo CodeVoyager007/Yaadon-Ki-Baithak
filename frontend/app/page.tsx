@@ -1,3 +1,4 @@
+import { CinemaFrame } from "@/components/home/CinemaFrame";
 import { Hero } from "@/components/home/Hero";
 import { IntroFilm } from "@/components/home/IntroFilm";
 import { Trailer } from "@/components/home/Trailer";
@@ -15,6 +16,7 @@ export default function HomePage() {
       <IntroFilm />
       <div className="film-grain" aria-hidden />
       <SiteNav />
+      <CinemaFrame />
       <main>
         <Hero />
         <Trailer />

@@ -1,6 +1,6 @@
 import { Birdy, type BirdyMood } from "@/components/mascots/Birdy";
 
-/** Laali saying something, used to guide each step inside the app. */
+/** Hudhud saying something, used to guide each step inside the app. */
 export function BirdySays({ children, mood = "idle", size = 96 }: { children: React.ReactNode; mood?: BirdyMood; size?: number }) {
   return (
     <div className="flex items-end gap-3">

@@ -8,8 +8,8 @@ Format follows VoltAgent's awesome-design-md (9 sections). Give this file to any
 
 Three ingredients, always together:
 - **Glass**: frosted night-glass panels floating over light. One stronger glass for the nav (`glass-nav`).
-- **Pixel magic**: tiny pixel stars, the pixel lantern loader, pixel Laali, cursor sparkles, pixel numerals. Small doses only.
-- **Painted warmth**: painted storybook scenes (skyline, story themes, folk tales) in one shared style, and Laali, the real bird cut-out, brought to life with motion.
+- **Pixel magic**: tiny pixel stars, the pixel lantern loader, pixel Hudhud, cursor sparkles, pixel numerals. Small doses only.
+- **Painted warmth**: painted storybook scenes (skyline, story themes, folk tales) in one shared style, and Hudhud, the real bird cut-out, brought to life with motion.
 
 It should feel like a family evening, not a SaaS dashboard.
 
@@ -36,7 +36,7 @@ Never use pure black or grey. Shadows are tinted ink brown.
 
 ## 3. Typography
 
-- **Fraunces Variable** (display): headlines, book titles, Laali's speech. Use the SOFT axis at 100 for rounded Pixar letterforms.
+- **Fraunces Variable** (display): headlines, book titles, Hudhud's speech. Use the SOFT axis at 100 for rounded Pixar letterforms.
 - **Nunito Variable** (body and UI): everything else. Bold 700 to 800 for buttons.
 - **Noto Nastaliq Urdu Variable**: all Urdu. Always `dir="rtl" lang="ur"` and line-height 2 or more, because Nastaliq is tall.
 - **Pixelify Sans Variable**: pixel accents only (years, chapter counts, step numbers). Never for sentences.
@@ -47,9 +47,10 @@ All fonts are self-hosted with @fontsource-variable. Sentence case everywhere. N
 
 - **btn-lantern + pixel-corners**: the one primary action per screen. Saffron, stepped pixel corners.
 - **glass-night**: panels, cards, speech bubbles. **glass-nav**: the floating nav. (`glass-day` is legacy; don't use it.)
-- **Laali (لالی)**: the bird cut-out (`components/mascots/birdy.webp`; the component is still called `Birdy` in code). Named after *shaam ki laali*, the red glow of the evening sky, the hour the app is themed on, and her coral-red feathers. A girl's name: Urdu copy about her uses feminine forms (لالی سن رہی ہے). Moods idle (breathing), flying (bob), happy (hop), listening (head tilt), gentle (slow sway, after a painful memory). `flip` to face the content.
-- **Laali's notebook**: the small, collapsible panel on the record screen showing why she chose each question (`components/app/ThinkingPanel.tsx`). Helper-facing, sits below the elder's controls, never over the question.
-- **BirdySays**: Laali plus a speech bubble. The app's guide voice inside the app.
+- **Hudhud (ہدہد)**: the bird cut-out (`components/mascots/birdy.webp`; the component is still called `Birdy` in code). Named after the hoopoe of the old stories: the bird who flies to Saba, listens, and returns to Hazrat Sulaiman with true news, and who guides the birds with stories in *Mantiq-ut-Tair*. A listener who carries the story home. Masculine in Urdu (ہدہد سن رہا ہے). Moods idle (breathing), flying (bob), happy (hop), listening (head tilt), gentle (slow sway, after a painful memory).
+- **Hudhud's eyes** (`components/mascots/BirdyEyes.tsx`): a vector eye drawn exactly over the painted one. Blinks every few seconds while on screen; lids half-lowered when gentle; a classic double take (squint, springy wide pop with a sparkle, body jolt, settle, about 1 s) when he first appears, lands, starts listening or gets happy. Off for reduced motion.
+- **Hudhud's notebook**: the small, collapsible panel on the record screen showing why he chose each question (`components/app/ThinkingPanel.tsx`). Helper-facing, sits below the elder's controls, never over the question.
+- **BirdySays**: Hudhud plus a speech bubble. The app's guide voice inside the app.
 - **Diya**: the recording light. Flame grows with mic level.
 - **PixelLantern**: loading state everywhere. No spinners.
 - **ChapterCard / ChapterView**: painted scene, pixel badge, English + Urdu titles, teller, excerpt, the elder's real voice with a filling waveform.
@@ -76,7 +77,7 @@ Light comes from lanterns. Depth = blur + glow, not drop shadows.
 Do:
 - Write in plain, warm English with Urdu accents in the right places.
 - Keep one bold element per screen.
-- Respect `prefers-reduced-motion` (Laali stays still, stars stop).
+- Respect `prefers-reduced-motion` (Hudhud stays still, stars stop).
 - Label demo content as demo content.
 
 Don't:
@@ -95,4 +96,4 @@ Don't:
 ## 9. Agent prompt guide
 
 When generating UI for this project:
-"Use the Shaam ki Kahani tokens from DESIGN.md. Everything is dark: glass-night panels over the indigo AppBackdrop or NightSky. Use the painted scenes, never flat clip-art. One btn-lantern per screen. Urdu in Noto Nastaliq with rtl and line-height 2. Pixel font only for numbers. Use Laali (BirdySays) to explain each step instead of helper text. Loading = PixelLantern. No all-caps, no arrows in buttons, no identical card grids."
+"Use the Shaam ki Kahani tokens from DESIGN.md. Everything is dark: glass-night panels over the indigo AppBackdrop or NightSky. Use the painted scenes, never flat clip-art. One btn-lantern per screen. Urdu in Noto Nastaliq with rtl and line-height 2. Pixel font only for numbers. Use Hudhud (BirdySays) to explain each step instead of helper text. Loading = PixelLantern. No all-caps, no arrows in buttons, no identical card grids."

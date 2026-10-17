@@ -201,7 +201,7 @@ export async function illustrate(chapter: Chapter, familySeed: number) {
 /* ---------------------------------------------------------------- */
 let speaking: HTMLAudioElement | null = null;
 
-/** Laali reads a question aloud: the Urdu voice from /api/tts, else the browser's own voice. */
+/** Hudhud reads a question aloud: the Urdu voice from /api/tts, else the browser's own voice. */
 export async function speak(text: string, lang: "ur" | "en") {
   speaking?.pause();
   if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();

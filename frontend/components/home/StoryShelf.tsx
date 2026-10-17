@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { ChapterCard } from "@/components/stories/ChapterCard";
 import { SAMPLE_CHAPTERS } from "@/lib/samples";
+import { SceneDip } from "./SceneDip";
 
 const HEADING = "The stories Nani told at bedtime";
 const BLURB =
@@ -57,10 +58,12 @@ function StoryReel() {
     <section
       ref={track}
       aria-label={HEADING}
+      data-scene="Nani's stories"
       className="relative hidden lg:motion-safe:block"
       style={{ height: `calc(100svh + ${distance}px)` }}
     >
       <div className="story-reel sticky top-0 flex h-[100svh] flex-col justify-center overflow-hidden pb-4 pt-24">
+        <SceneDip p={p} target={track} />
         <div className="mx-auto w-full max-w-6xl px-5">
           <p className="font-urdu text-2xl leading-[2] text-lantern-soft" dir="rtl" lang="ur" style={{ textAlign: "left" }}>نانی کی کہانیاں</p>
           <h2 className="font-display text-4xl font-semibold leading-tight text-moon xl:text-5xl">{HEADING}</h2>

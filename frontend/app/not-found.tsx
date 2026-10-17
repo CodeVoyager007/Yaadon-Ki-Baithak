@@ -13,7 +13,7 @@ export default function NotFound() {
         <p className="font-urdu mt-4 text-3xl leading-[2] text-lantern-soft" dir="rtl" lang="ur">
           یہ صفحہ نہیں ملا
         </p>
-        <h1 className="font-display text-4xl sm:text-5xl">Laali looked everywhere.</h1>
+        <h1 className="font-display text-4xl sm:text-5xl">Hudhud looked everywhere.</h1>
         <p className="mt-3 max-w-sm text-moon/70">This page doesn&apos;t exist, or the link was mistyped.</p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link href="/" className="btn-lantern pixel-corners inline-flex h-12 items-center px-6 font-extrabold">

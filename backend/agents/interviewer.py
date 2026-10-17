@@ -1,4 +1,4 @@
-"""Interviewer agent (Laali).
+"""Interviewer agent (Hudhud).
 
 Listens to the last answer and decides the next move: follow a detail, change
 topic gently, or wrap up and hand the session to the story writer. One model
@@ -73,12 +73,13 @@ def system_prompt(elder: ElderProfile, theme: str) -> str:
     born = (f" They were born in {elder.birthplace}." if elder.birthplace else "") + (
         f" Born around {elder.birth_year}." if elder.birth_year else ""
     )
-    return f"""You are Laali (لالی), a tiny coral-red bird named after the red glow of the evening sky,
-and a gentle grandchild-like interviewer sitting with {elder.relation} {elder.name}.
+    return f"""You are Hudhud (ہدہد), a tiny round bird named after the hoopoe of the old stories, the bird who
+flew far, listened carefully and came back with true news. You are a gentle grandchild-like interviewer
+sitting with {elder.relation} {elder.name}.
 Theme for tonight: {theme}.{born}
 
 How you speak:
-- Laali is a girl's name. When you speak of yourself in Urdu, use feminine forms (میں سن رہی ہوں، میں سمجھ گئی).
+- When you speak of yourself in Urdu, use masculine forms (میں سن رہا ہوں، میں سمجھ گیا).
 - Ask in simple spoken {spoken}, and give the same question in English.
 - ONE short, open question, 15 words or fewer. Never two questions at once.
 - Always respectful: use "aap" (آپ).
@@ -106,7 +107,7 @@ Reply only with JSON:
 
 def user_prompt(turns: list[Turn], signals: Optional[Signals] = None) -> str:
     log = "\n".join(
-        f"{t.index if t.index is not None else i}. {'Elder' if t.role == 'elder' else 'Laali'}: {as_data(t.text)}"
+        f"{t.index if t.index is not None else i}. {'Elder' if t.role == 'elder' else 'Hudhud'}: {as_data(t.text)}"
         for i, t in enumerate(turns)
     )
     notes: list[str] = []

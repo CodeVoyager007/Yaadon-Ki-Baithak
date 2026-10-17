@@ -133,7 +133,7 @@ function EditChapter({ stored, onSave, onCancel }: { stored: StoredChapter; onSa
   return (
     <section className="glass-night rounded-[32px] p-6 sm:p-9">
       <h1 className="font-display text-3xl text-moon">Edit chapter</h1>
-      <p className="mt-1 text-moon/65">Fix anything Laali misheard. The original recordings stay exactly as they were.</p>
+      <p className="mt-1 text-moon/65">Fix anything Hudhud misheard. The original recordings stay exactly as they were.</p>
       <div className="mt-7 grid gap-6 lg:grid-cols-2">
         <label className="block">
           <span className="text-sm font-bold text-moon">Title (English)</span>

@@ -270,3 +270,37 @@ body {
 }
 .shelf::-webkit-scrollbar { display: none; }
 .shelf > * { scroll-snap-align: start; }
+
+/* One letterbox for the whole home-page film (components/home/CinemaFrame.tsx).
+   --cine goes 0 -> 1 as the opening shot closes the bars, back to 0 when the
+   promise section arrives. Same height in every scene, so nothing jumps. */
+.cine-bar {
+  position: absolute;
+  inset-inline: 0;
+  height: 10vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 1.5rem;
+  background: #05050f;
+  transform: scaleY(var(--cine, 0));
+}
+.cine-bar-top { top: 0; transform-origin: top; }
+.cine-bar-bottom { bottom: 0; transform-origin: bottom; }
+.cine-shot,
+.cine-scene,
+.cine-hint {
+  font-size: 0.8rem;
+  color: rgb(255 244 220 / 0.5);
+  /* text appears only once the bars are fully closed, so it never squashes */
+  opacity: clamp(0, calc((var(--cine, 0) - 0.85) * 6.7), 1);
+}
+.cine-scene { font-family: var(--font-pixel); }
+.cine-hint { color: rgb(255 244 220 / 0.38); }
+
+/* The nav steps out of the frame while the film plays and returns after. */
+.site-nav {
+  transform: translateY(calc(var(--cine, 0) * -160%));
+  opacity: calc(1 - var(--cine, 0));
+  transition: opacity 0.2s linear;
+}
