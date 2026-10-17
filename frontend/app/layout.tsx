@@ -3,7 +3,7 @@ import "@fontsource-variable/fraunces/full.css";
 import "@fontsource-variable/fraunces/full-italic.css";
 import "@fontsource-variable/nunito/index.css";
 import "@fontsource-variable/noto-nastaliq-urdu/index.css";
-import "@fontsource-variable/pixelify-sans/index.css";
+import "@fontsource-variable/caveat/index.css";
 import "./globals.css";
 import { SoundProvider } from "@/components/sound/SoundProvider";
 import { PixelSparkles } from "@/components/effects/PixelSparkles";

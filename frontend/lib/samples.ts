@@ -27,19 +27,6 @@ export type SampleChapter = {
   image?: StaticImageData;
 };
 
-/** The memory shown in the hero: what a real family chapter looks like. */
-export const HERO_CHAPTER: SampleChapter = {
-  slug: "last-train-from-ambala",
-  title: "The last train from Ambala",
-  teller: "Dadi Zubaida",
-  year: "1947",
-  place: "Ambala to Lahore",
-  voice: "4:12",
-  excerpt:
-    "Abba worked for the railway, so we always lived near stations. That August, Ammi sewed our gold into the hem of my kurta. I held my little brother's hand the whole night.",
-  scene: "train",
-};
-
 /** Bedtime tales on the story shelf. */
 export const SAMPLE_CHAPTERS: SampleChapter[] = [
   {

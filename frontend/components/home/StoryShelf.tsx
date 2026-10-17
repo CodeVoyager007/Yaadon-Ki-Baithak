@@ -29,7 +29,7 @@ function StoryShelfClassic() {
   return (
     <section className="relative scroll-mt-24 py-24">
       <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-6 px-5">
-        <div className="reveal max-w-xl">
+        <div className="max-w-xl">
           <h2 className="font-display text-4xl font-semibold leading-tight text-moon sm:text-5xl">{HEADING}</h2>
           <p className="mt-4 text-moon/80">{BLURB}</p>
         </div>
