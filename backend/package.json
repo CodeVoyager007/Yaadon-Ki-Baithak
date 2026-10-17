@@ -1,0 +1,21 @@
+{
+  "name": "@baithak/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./routes/*": "./src/routes/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@baithak/agents": "*",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.117.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.0",
+    "typescript": "5.9.3"
+  }
+}
