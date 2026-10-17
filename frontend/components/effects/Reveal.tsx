@@ -6,13 +6,16 @@ import { useEffect, useRef, type ReactNode } from "react";
  * Lifts its children into view once, the first time they scroll into frame.
  * Uses the `.reveal` / `.reveal.is-in` pair from globals.css, so a visitor
  * with prefers-reduced-motion simply sees the content (the CSS skips it).
+ * The hiding class is added by script, and only below the fold, so without
+ * JavaScript (or for anything already on screen) the content is just there.
  */
 export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || el.getBoundingClientRect().top < window.innerHeight) return;
+    el.classList.add("reveal");
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -29,7 +32,7 @@ export function Reveal({ children, delay = 0, className }: { children: ReactNode
   }, []);
 
   return (
-    <div ref={ref} className={`reveal ${className ?? ""}`} style={delay ? { transitionDelay: `${delay}ms` } : undefined}>
+    <div ref={ref} className={className} style={delay ? { transitionDelay: `${delay}ms` } : undefined}>
       {children}
     </div>
   );

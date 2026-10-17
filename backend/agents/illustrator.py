@@ -46,7 +46,9 @@ def scene_for(title: Bilingual, scene: Optional[str], year: Optional[str]) -> st
     partition = "1947" in (year or "") or bool(re.search(r"1947|partition|train", title.en, re.I))
     if partition:
         return QUIET_JOURNEY
-    return QUIET_HOME if scene else (title.en or QUIET_HOME)
+    if scene or not title.en or _is_graphic(title.en):
+        return QUIET_HOME
+    return title.en
 
 
 def illustration_request(

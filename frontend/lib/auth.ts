@@ -8,6 +8,7 @@
  * out. Signing out clears it in both modes.
  */
 import { useCallback, useEffect, useState } from "react";
+import { clearBook } from "@/lib/book-store";
 import { demoMode, hasSupabase, supabaseBrowser } from "@/lib/supabase/client";
 
 const DEMO_KEY = "baithak-demo-auth";
@@ -53,8 +54,9 @@ export function forgetDemoUser() {
   emit();
 }
 
-/** Clears both the demo flag and the real Supabase session. */
+/** Clears the demo flag, the real Supabase session and the family book kept on this device. */
 export async function signOutAll() {
+  clearBook();
   forgetDemoUser();
   if (hasSupabase) {
     try {
@@ -96,7 +98,11 @@ export function useAuth() {
       const sub = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(fromSession(session));
       });
-      const onChanged = () => setUser(readDemo());
+      const onChanged = () =>
+        void supabase.auth
+          .getSession()
+          .then(({ data }) => live && setUser(fromSession(data.session)))
+          .catch(() => {});
       window.addEventListener(EVENT, onChanged);
       return () => {
         live = false;

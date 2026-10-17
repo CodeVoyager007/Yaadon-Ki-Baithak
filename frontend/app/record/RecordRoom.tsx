@@ -108,54 +108,52 @@ export function RecordRoom() {
 
   const answers = live ? (session.current?.turns.filter((t) => t.role === "elder").length ?? 0) : 0;
 
+  const consentTimer = useRef(0);
+  const consentDone = useRef(false);
+
+  /** Saves the consent (with the spoken "haan" if it was recorded) and opens the session. Runs once. */
+  async function finishConsent(recorded: boolean) {
+    if (!elder || consentDone.current) return;
+    consentDone.current = true;
+    window.clearTimeout(consentTimer.current);
+    const take = recorded ? await rec.stop() : null;
+    const consentAt = new Date().toISOString();
+    let consentClipId: string | undefined;
+    if (take?.blob) {
+      consentClipId = newId();
+      await putClip(consentClipId, take.blob).catch(() => {});
+    }
+    updateElder(elder.id, { consentAt, consentClipId });
+    setElder({ ...elder, consentAt, consentClipId });
+    setRecordingConsent(false);
+    chirp();
+    setPhase("session");
+    void speak(question[lang], lang);
+  }
+
   async function giveConsent() {
-    if (!elder) return;
+    if (!elder || consentDone.current) return;
     if (recordingConsent) {
-      const take = await rec.stop();
-      const consentAt = new Date().toISOString();
-      let consentClipId: string | undefined;
-      if (take?.blob) {
-        consentClipId = newId();
-        await putClip(consentClipId, take.blob).catch(() => {});
-      }
-      updateElder(elder.id, { consentAt, consentClipId });
-      setElder({ ...elder, consentAt, consentClipId });
-      setRecordingConsent(false);
-      chirp();
-      setPhase("session");
-      void speak(question[lang], lang);
+      await finishConsent(true);
       return;
     }
-
+    stopSpeaking(); // don't record Hudhud's own notice as the consent
     setRecordingConsent(true);
     const started = await rec.start();
     if (!started) {
-      const consentAt = new Date().toISOString();
-      updateElder(elder.id, { consentAt });
-      setElder({ ...elder, consentAt });
-      setRecordingConsent(false);
-      chirp();
-      setPhase("session");
-      void speak(question[lang], lang);
+      await finishConsent(false);
       return;
     }
-
-    window.setTimeout(async () => {
-      const take = await rec.stop();
-      const consentAt = new Date().toISOString();
-      let consentClipId: string | undefined;
-      if (take?.blob) {
-        consentClipId = newId();
-        await putClip(consentClipId, take.blob).catch(() => {});
-      }
-      updateElder(elder.id, { consentAt, consentClipId });
-      setElder({ ...elder, consentAt, consentClipId });
-      setRecordingConsent(false);
-      chirp();
-      setPhase("session");
-      void speak(question[lang], lang);
-    }, 3500);
+    consentTimer.current = window.setTimeout(() => void finishConsent(true), 3500);
   }
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(consentTimer.current);
+      stopSpeaking();
+    },
+    [],
+  );
 
   async function nextQuestion(skipped: boolean) {
     setThinking(true);
@@ -182,8 +180,30 @@ export function RecordRoom() {
     }
   }
 
+  /** Stops the recording and keeps the answer: the real voice, then its transcript. */
+  async function saveAnswer() {
+    const take = await rec.stop();
+    if (!take) return false;
+    if (live) {
+      setThinking(true);
+      try {
+        const clipId = newId();
+        await putClip(clipId, take.blob).catch(() => {});
+        // The route also keeps the real voice in the family's private bucket
+        // and hands back its path, which reaches the database with the turn.
+        const { text, audioPath } = await transcribe(take.blob, lang, take.caption, session.current?.id);
+        addTurn({ role: "elder", text, lang, clipId, audioPath, durationMs: take.durationMs, at: new Date().toISOString() });
+      } finally {
+        setThinking(false);
+      }
+    } else {
+      addTurn({ role: "elder", text: "", lang, at: new Date().toISOString() }); // practice: counted, never saved
+    }
+    return true;
+  }
+
   async function toggleLamp() {
-    if (thinking) return;
+    if (thinking || rec.status === "asking") return;
     try {
       if (rec.status !== "recording") {
         stopSpeaking();
@@ -192,35 +212,35 @@ export function RecordRoom() {
         await rec.start();
         return;
       }
-      const take = await rec.stop();
-      if (!take) return;
-      if (live) {
-        setThinking(true);
-        const clipId = newId();
-        await putClip(clipId, take.blob).catch(() => {});
-        // The route also keeps the real voice in the family's private bucket
-        // and hands back its path, which reaches the database with the turn.
-        const { text, audioPath } = await transcribe(take.blob, lang, take.caption, session.current?.id);
-        addTurn({ role: "elder", text, lang, clipId, audioPath, durationMs: take.durationMs, at: new Date().toISOString() });
-      } else {
-        addTurn({ role: "elder", text: "", lang, at: new Date().toISOString() }); // practice: counted, never saved
-      }
-      await nextQuestion(false);
+      if (await saveAnswer()) await nextQuestion(false);
     } catch (err) {
       console.error("Error in toggleLamp:", err);
       setThinking(false);
     }
   }
 
+  async function saveTyped() {
+    const text = typedAnswer.trim();
+    if (!text || thinking) return;
+    setTypedAnswer("");
+    addTurn({ role: "elder", text, lang, at: new Date().toISOString() });
+    await nextQuestion(false);
+  }
+
   async function skip() {
+    if (thinking) return;
     if (rec.status === "recording") await rec.stop();
     await nextQuestion(true);
   }
 
   async function finish() {
+    // "Stop for today" while talking keeps that last answer, then ends.
     if (rec.status === "recording") {
-      await toggleLamp();
-      return;
+      try {
+        await saveAnswer();
+      } catch (err) {
+        console.error("Error saving the last answer:", err);
+      }
     }
     stopSpeaking();
     const s = session.current;
@@ -369,14 +389,7 @@ export function RecordRoom() {
                   <button
                     type="button"
                     disabled={!typedAnswer.trim() || thinking}
-                    onClick={async () => {
-                      if (!typedAnswer.trim()) return;
-                      const text = typedAnswer.trim();
-                      setTypedAnswer("");
-                      ensureSession();
-                      addTurn({ role: "elder", text, lang, at: new Date().toISOString() });
-                      await nextQuestion(false);
-                    }}
+                    onClick={() => void saveTyped()}
                     className="btn-lantern pixel-corners mt-2 inline-flex h-10 items-center px-5 text-sm font-bold disabled:opacity-50"
                   >
                     Save answer and continue
@@ -445,6 +458,8 @@ export function RecordRoom() {
                       session.current = null;
                       setQuestion(themeInfo.firstQuestion);
                       setThoughts([]);
+                      setGentle(false);
+                      setNote(null);
                       setPhase("session");
                     }}
                     className="h-12 rounded-2xl px-5 font-bold text-moon/80 hover:text-moon">

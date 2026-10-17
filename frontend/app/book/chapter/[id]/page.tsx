@@ -39,16 +39,11 @@ export default function ChapterPage() {
         setStored(next);
         setPaintNote("Hudhud painted a new picture for this chapter!");
       } else {
-        const next: StoredChapter = { ...stored, imageUrl: undefined };
-        saveChapter(next);
-        setStored(next);
-        setPaintNote("The painter is taking a rest right now. Hudhud kept the theme picture.");
+        setPaintNote("The painter is taking a rest right now. The chapter keeps its picture.");
       }
     } catch {
-      const next: StoredChapter = { ...stored, imageUrl: undefined };
-      saveChapter(next);
-      setStored(next);
-      setPaintNote("The painter is taking a rest right now. Hudhud kept the theme picture.");
+      // A failed repaint never takes away the picture the chapter already has.
+      setPaintNote("The painter is taking a rest right now. The chapter keeps its picture.");
     } finally {
       setPainting(false);
     }

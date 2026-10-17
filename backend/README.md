@@ -25,7 +25,7 @@ backend/
     types.py           pydantic shapes (camelCase on the wire)
   app/               FastAPI around the agents
     main.py            app, CORS, error handlers, /health
-    routes/            agents.py (turn, chapter, story, illustrate), voice.py (transcribe, tts), share.py
+    routes/            agents.py (turn, chapter, illustrate), voice.py (transcribe, tts), share.py
     providers/         gemini.py, cloudflare.py (plain httpx, server-only keys)
     security.py        rate limit + Supabase bearer-token check
     supabase.py        REST calls as the caller (RLS) or as the service role
@@ -44,7 +44,7 @@ python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activ
 pip install -r requirements-dev.txt
 cp .env.example .env                              # fill in keys; APP_ENV=development
 uvicorn app.main:app --env-file .env --reload --port 8000
-pytest                                            # 39 tests, no keys needed
+pytest                                            # 41 tests, no keys needed
 ```
 
 Then set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`
@@ -98,6 +98,7 @@ actually did:
 | --- | --- | --- |
 | `POST /api/turn` | `{ elder, theme, turns, skipped? }` | `InterviewerDecision` + `handoff` + `signals` (what Hudhud noticed) + `trace` |
 | `POST /api/chapter` | `{ elder, theme, turns, familySeed }` | `{ chapter, imageUrl?, trace }`: the orchestrated hand-off |
+| `POST /api/illustrate` | `{ chapter: { title, scene?, year?, place? }, familySeed }` | `{ imageUrl?, trace }`: paints a saved chapter again |
 | `POST /api/transcribe` | FormData `{ audio, lang, sessionId? }` | `{ text, audioPath? }`. Gemini, then Whisper as backup; the clip is stored with the caller's token |
 | `POST /api/tts` | `{ text, lang }` | `audio/wav`, Hudhud's voice only, cached by text |
 | `GET /api/share/{token}` | none | read-only family book (public, service role after the token check) |
@@ -116,7 +117,7 @@ Vercel 4.5 MB body limit any more, so long answers reach the transcriber.
 - No cookies means no CSRF. Instead, `ALLOWED_ORIGINS` (CORS) lists which
   sites may call the API.
 - Rate limits, per minute, both per client IP and per account: 30 for turns,
-  transcription and voice, 6 for chapters (the free FLUX quota is ~170 images a
+  transcription and voice, 6 for chapters and repaints (the free FLUX quota is ~170 images a
   day), 60 for share reads. The client IP is the hop our own proxy added to
   `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`), never a value the client wrote.
   In memory, so per instance.

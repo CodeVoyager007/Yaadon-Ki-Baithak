@@ -19,7 +19,12 @@ export function BookNav() {
       <div className="mx-auto flex max-w-6xl items-center justify-around px-4 py-2">
         {BOOK_LINKS.map((l) => {
           const Icon = l.icon;
-          const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href));
+          const active =
+            l.href === "/book"
+              ? pathname === "/book" || pathname.startsWith("/book/chapter") || pathname.startsWith("/book/writing")
+              : l.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(l.href);
           return (
             <Link
               key={l.href}

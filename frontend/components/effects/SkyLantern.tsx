@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * A sky lantern that rises from the lower corner of the screen, drifting
@@ -9,18 +9,18 @@ import { useEffect, useRef } from "react";
  * It cleans itself up when the flight ends.
  */
 export function SkyLantern({ delay = 0, duration = 12, className }: { delay?: number; duration?: number; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const [flown, setFlown] = useState(false);
 
+  // Unmount through React when the flight ends; removing the node by hand crashes the parent's next render.
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const timeout = window.setTimeout(() => el.remove(), (delay + duration) * 1000 + 600);
+    const timeout = window.setTimeout(() => setFlown(true), (delay + duration) * 1000 + 600);
     return () => window.clearTimeout(timeout);
   }, [delay, duration]);
 
+  if (flown) return null;
+
   return (
     <div
-      ref={ref}
       aria-hidden
       className={`anim-lantern-fly pointer-events-none absolute h-16 w-12 ${className ?? ""}`}
       style={{ animationDuration: `${duration}s, 2.4s`, animationDelay: `${delay}s, ${delay}s` }}

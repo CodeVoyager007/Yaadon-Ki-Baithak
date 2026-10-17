@@ -156,6 +156,7 @@ export function useRecorder(lang: "ur" | "en") {
       setStatus("idle");
       return { blob, durationMs, caption: text };
     } catch {
+      recorder.current = null;
       cleanup();
       setStatus("idle");
       return null;

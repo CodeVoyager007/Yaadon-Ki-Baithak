@@ -26,7 +26,7 @@ Open http://localhost:3000. With no backend URL or no keys the app still runs in
 demo mode on honest stand-ins (practice questions, transcript-only drafts).
 
 ```bash
-cd backend && pytest   # 39 tests: agents, orchestrator, HTTP and security; no keys, no network
+cd backend && pytest   # 41 tests: agents, orchestrator, HTTP and security; no keys, no network
 npm run build          # frontend production build (then npm run typecheck)
 ```
 

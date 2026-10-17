@@ -144,10 +144,11 @@ export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn
   return { chapter: transcriptDraft(elder, theme, turns), imageUrl: undefined, trace: [] as TraceStep[], source: "stand-in" as Source };
 }
 
-/** POST /api/illustrate  { chapter, familySeed } -> { imageUrl?, trace }: re-runs illustration only. */
+/** POST /api/illustrate  { chapter, familySeed } -> { imageUrl?, trace }: paints a chapter again. Only the brief is sent, never the elder's words. */
 export async function illustrateOnly(chapter: Chapter, familySeed: number): Promise<{ imageUrl?: string | null; trace?: TraceStep[] }> {
+  const { title, scene, year, place } = chapter;
   const ai = await post<{ imageUrl?: string | null; trace: TraceStep[] }>("/api/illustrate", {
-    chapter,
+    chapter: { title, scene, year, place },
     familySeed,
   });
   if (ai) return { imageUrl: ai.imageUrl, trace: ai.trace };
@@ -181,11 +182,23 @@ function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
 
 /** POST /api/tts  { text, lang } -> audio */
 let speaking: HTMLAudioElement | null = null;
+/** Bumped by every speak/stop, so a voice that arrives late never plays over the elder. */
+let speechTurn = 0;
+
+function silence() {
+  speechTurn += 1;
+  if (speaking) {
+    speaking.pause();
+    URL.revokeObjectURL(speaking.src);
+    speaking = null;
+  }
+  if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  return speechTurn;
+}
 
 /** Hudhud reads a question aloud: the Urdu voice from /api/tts, else the browser's own voice. */
 export async function speak(text: string, lang: "ur" | "en") {
-  speaking?.pause();
-  if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  const turn = silence();
   try {
     if (!hasBackend) throw new Error("no backend");
     const res = await fetch(apiUrl("/api/tts"), {
@@ -194,15 +207,17 @@ export async function speak(text: string, lang: "ur" | "en") {
       body: JSON.stringify({ text, lang }),
     });
     if (res.ok && res.headers.get("content-type")?.startsWith("audio")) {
-      const url = URL.createObjectURL(await res.blob());
-      speaking = new Audio(url);
-      await speaking.play();
+      const blob = await res.blob();
+      if (turn !== speechTurn) return;
+      const audio = new Audio(URL.createObjectURL(blob));
+      speaking = audio;
+      await audio.play();
       return;
     }
   } catch {
     /* fall through */
   }
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (turn !== speechTurn || typeof window === "undefined" || !("speechSynthesis" in window)) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang === "ur" ? "ur-PK" : "en-GB";
   const voice = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang === "ur" ? "ur" : "en"));
@@ -212,6 +227,5 @@ export async function speak(text: string, lang: "ur" | "en") {
 }
 
 export function stopSpeaking() {
-  speaking?.pause();
-  if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  silence();
 }

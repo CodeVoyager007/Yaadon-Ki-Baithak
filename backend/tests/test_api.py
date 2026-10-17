@@ -206,3 +206,19 @@ def test_health_reports_connections_without_secrets(env, api):
     env(GEMINI_API_KEY="secret-value")
     body = api.get("/health").json()
     assert body["gemini"] is True and "secret-value" not in str(body)
+
+
+def test_illustrate_paints_from_a_clamped_brief_only(env, api, monkeypatch):
+    seen = {}
+
+    async def painter(req):
+        seen["prompt"] = req.prompt
+        return "data:image/png;base64,AAAA"
+
+    monkeypatch.setattr("app.routes.agents.painter_for", lambda user_id: painter)
+    env(CLOUDFLARE_ACCOUNT_ID="a", CLOUDFLARE_API_TOKEN="t")
+    chapter = {"title": {"en": "Friday bhujia", "ur": ""}, "body": {"en": "x" * 5000, "ur": ""}, "scene": "s" * 900, "year": "soon"}
+    res = api.post("/api/illustrate", json={"chapter": chapter, "familySeed": 3})
+    assert res.status_code == 200 and res.json()["imageUrl"].startswith("data:image/png")
+    assert "s" * 301 not in seen["prompt"] and "around soon" not in seen["prompt"] and "x" * 50 not in seen["prompt"]
+    assert api.post("/api/illustrate", json={"chapter": {"title": {}}}).status_code == 400

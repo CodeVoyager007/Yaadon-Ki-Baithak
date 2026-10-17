@@ -8,11 +8,11 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Request
 
-from agents import Chapter, Orchestrator
+from agents import Orchestrator
 
 from ..config import settings
-from ..errors import ApiError, not_configured, provider_failed
-from ..inputs import clean_elder, clean_seed, clean_theme, clean_turns, read_json
+from ..errors import not_configured, provider_failed
+from ..inputs import clean_elder, clean_painting_brief, clean_seed, clean_theme, clean_turns, read_json
 from ..painting import painter_for
 from ..providers import gemini
 from ..security import require_caller
@@ -84,20 +84,13 @@ async def chapter(request: Request):
 
 @router.post("/illustrate")
 async def illustrate(request: Request):
-    """Body: { chapter, familySeed } -> { imageUrl?, trace }.
-    Re-runs only the illustration for a chapter."""
+    """Body: { chapter, familySeed } -> { imageUrl?, trace }. Paints an existing chapter again."""
     caller = await require_caller(request, "illustrate")
     body = await read_json(request)
-    chap_dict = body.get("chapter")
-    if not isinstance(chap_dict, dict):
-        raise ApiError(400, "Missing chapter")
+    brief = clean_painting_brief(body.get("chapter"))
     try:
-        chap = Chapter.model_validate(chap_dict)
-    except Exception:
-        raise ApiError(400, "Invalid chapter")
-    family_seed = clean_seed(body.get("familySeed"))
-    out_url, trace = await _orchestrator(caller.user_id).paint_chapter(chap, family_seed)
-    return {
-        "imageUrl": out_url,
-        "trace": [t.model_dump(by_alias=True) for t in trace],
-    }
+        image_url, trace = await _orchestrator(caller.user_id).paint_chapter(brief, clean_seed(body.get("familySeed")))
+    except Exception as err:
+        log.error("[api/illustrate] %s", err)
+        raise provider_failed("The illustrator") from None
+    return {"imageUrl": image_url, "trace": [t.model_dump(by_alias=True) for t in trace]}

@@ -10,7 +10,9 @@ from typing import Any
 
 from fastapi import Request
 
-from agents import ElderProfile, Turn
+import re
+
+from agents import Bilingual, Chapter, ElderProfile, Turn
 
 from .errors import bad_body
 
@@ -82,6 +84,24 @@ def clean_turns(raw: Any, max_turns: int = 40, allow_empty: bool = False) -> lis
 
 def clean_theme(raw: Any) -> str:
     return _short(raw, 60) or "Free talk"
+
+
+def clean_painting_brief(raw: Any) -> Chapter:
+    """Only what the illustrator reads from a stored chapter (title, scene, year, place), clamped.
+    The chapter body never goes to the painter."""
+    c = raw if isinstance(raw, dict) else {}
+    title = c.get("title") if isinstance(c.get("title"), dict) else {}
+    en, ur = _short(title.get("en"), 120), _short(title.get("ur"), 120)
+    if not en and not ur:
+        raise bad_body()
+    year = _short(c.get("year"), 8)
+    return Chapter(
+        title=Bilingual(en=en, ur=ur),
+        body=Bilingual(en="", ur=""),
+        scene=_short(c.get("scene"), 300) or None,
+        year=year if re.fullmatch(r"1[89]\d\d|20\d\d", year) else None,
+        place=_short(c.get("place"), 60) or None,
+    )
 
 
 def clean_seed(raw: Any) -> int:

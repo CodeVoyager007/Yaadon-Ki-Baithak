@@ -131,3 +131,8 @@ def test_illustrator_paints_the_scene_and_swaps_graphic_ones():
     assert "steam train" in grim.prompt and "blood on" not in grim.prompt
     assert illustration_request(title, 1, "a cooking fire under the tandoor").prompt.startswith("a cooking fire")
     assert illustration_request(title, 7).seed == 7
+
+
+def test_an_edited_graphic_title_is_never_painted():
+    req = illustration_request(Bilingual(en="The riot on our street", ur=""), 1)
+    assert "riot" not in req.prompt.split(".")[0]
