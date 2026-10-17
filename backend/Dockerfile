@@ -3,7 +3,7 @@
 # (Render/Railway set it); Hugging Face Spaces expects 7860, the default.
 FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=7860
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=7860 TRUSTED_PROXY_HOPS=1
 
 # Hugging Face Spaces runs containers as uid 1000.
 RUN useradd --create-home --uid 1000 app
@@ -17,4 +17,4 @@ COPY --chown=app:app app ./app
 
 USER app
 EXPOSE 7860
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --no-proxy-headers"]

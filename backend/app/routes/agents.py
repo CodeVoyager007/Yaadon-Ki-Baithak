@@ -1,4 +1,4 @@
-"""The agent routes: interviewer, story writer, the orchestrated chapter, and a fresh painting."""
+"""The agent routes: the interviewer's turn, and the orchestrated chapter (writer, then illustrator)."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Request
 
-from agents import Orchestrator, illustration_request, run_story_writer
+from agents import Orchestrator
 
 from ..config import settings
-from ..errors import ApiError, not_configured, provider_failed
-from ..inputs import chapter_art_fields, clean_elder, clean_seed, clean_theme, clean_turns, read_json
+from ..errors import not_configured, provider_failed
+from ..inputs import clean_elder, clean_seed, clean_theme, clean_turns, read_json
 from ..painting import painter_for
 from ..providers import gemini
 from ..security import require_caller
@@ -80,39 +80,3 @@ async def chapter(request: Request):
         "imageUrl": out.image_url,
         "trace": [t.model_dump(by_alias=True) for t in out.trace],
     }
-
-
-@router.post("/story")
-async def story(request: Request):
-    """Body: { elder, theme, turns } -> Chapter. The writer alone, e.g. to rewrite a chapter."""
-    await require_caller(request, "story")
-    if not settings().has_gemini:
-        raise not_configured("The story writer")
-    body = await read_json(request)
-    elder, turns = clean_elder(body.get("elder")), clean_turns(body.get("turns"), 60)
-    try:
-        written = await run_story_writer(gemini.generate_json, elder, clean_theme(body.get("theme")), turns)
-    except Exception as err:
-        log.error("[api/story] %s", err)
-        raise provider_failed("The story writer") from None
-    if not written:
-        raise provider_failed("The story writer")
-    return written.model_dump(by_alias=True, exclude_none=True)
-
-
-@router.post("/illustrate")
-async def illustrate(request: Request):
-    """Body: { chapter, familySeed } -> { imageUrl }. The "New picture" button."""
-    caller = await require_caller(request, "illustrate")
-    if not settings().has_cloudflare:
-        raise not_configured("The illustrator")
-    body = await read_json(request)
-    title, scene, year, place = chapter_art_fields(body.get("chapter"))
-    req = illustration_request(title, clean_seed(body.get("familySeed")), scene, year, place)
-    try:
-        return {"imageUrl": await painter_for(caller.user_id)(req)}
-    except ApiError:
-        raise
-    except Exception as err:
-        log.error("[api/illustrate] %s", err)
-        raise provider_failed("The illustrator") from None

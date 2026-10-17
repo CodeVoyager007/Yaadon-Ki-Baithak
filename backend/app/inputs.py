@@ -6,11 +6,11 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import Request
 
-from agents import Bilingual, ElderProfile, Turn
+from agents import ElderProfile, Turn
 
 from .errors import bad_body
 
@@ -28,7 +28,7 @@ async def read_json(request: Request) -> dict[str, Any]:
         raise bad_body()
     try:
         body = json.loads(raw)
-    except (json.JSONDecodeError, UnicodeDecodeError):
+    except (ValueError, RecursionError):  # bad JSON, bad UTF-8, or nesting deep enough to blow the stack
         raise bad_body() from None
     if not isinstance(body, dict):
         raise bad_body()
@@ -88,18 +88,3 @@ def clean_seed(raw: Any) -> int:
     if isinstance(raw, bool) or not isinstance(raw, (int, float)) or not math.isfinite(raw):
         return 0
     return abs(int(raw)) % 1_000_000
-
-
-def chapter_art_fields(raw: Any) -> tuple[Bilingual, Optional[str], Optional[str], Optional[str]]:
-    """Only what the illustrator reads from a chapter: title, scene, year, place."""
-    c = raw if isinstance(raw, dict) else {}
-    title = c.get("title") if isinstance(c.get("title"), dict) else {}
-    title_en = _short(title.get("en"), 160)
-    if not title_en:
-        raise bad_body()
-    return (
-        Bilingual(en=title_en),
-        _short(c.get("scene"), 400) or None,
-        _short(c.get("year"), 20) or None,
-        _short(c.get("place"), 120) or None,
-    )

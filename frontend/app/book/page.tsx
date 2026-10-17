@@ -9,7 +9,7 @@ import { AppHeader } from "@/components/app/AppHeader";
 import { SceneByName, SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { Birdy } from "@/components/mascots/Birdy";
-import { claimBook, clearBook, elderLabel, loadBook, newId, updateBook, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
+import { claimBook, clearBook, elderLabel, loadBook, newShareToken, updateBook, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
 import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { pushShareLink } from "@/lib/data/remote";
 import { hasSupabase, supabaseBrowser } from "@/lib/supabase/client";
@@ -327,7 +327,7 @@ function SharePanel({ book, onChange }: { book: FamilyBook; onChange: (b: Family
           </div>
         </>
       ) : (
-        <button type="button" onClick={() => set(newId() + newId())} className="mt-4 h-11 w-full rounded-2xl bg-white/10 font-bold text-moon hover:bg-white/15">
+        <button type="button" onClick={() => set(newShareToken())} className="mt-4 h-11 w-full rounded-2xl bg-white/10 font-bold text-moon hover:bg-white/15">
           Create a share link
         </button>
       )}

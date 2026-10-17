@@ -19,6 +19,8 @@ def _env(name: str, default: str = "") -> str:
 @dataclass(frozen=True)
 class Settings:
     app_env: str = field(default_factory=lambda: _env("APP_ENV", "production"))
+    # Proxies in front of us that append to X-Forwarded-For (Hugging Face / Render: 1; none locally: 0).
+    trusted_proxy_hops: int = field(default_factory=lambda: max(0, int(_env("TRUSTED_PROXY_HOPS", "1") or 0)))
     allowed_origins: tuple[str, ...] = field(
         default_factory=lambda: tuple(o.strip().rstrip("/") for o in _env("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o.strip())
     )

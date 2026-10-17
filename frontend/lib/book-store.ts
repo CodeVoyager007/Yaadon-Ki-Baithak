@@ -1,5 +1,5 @@
 /**
- * Local-first storage for the family book. The shapes match Humema's
+ * Local-first storage for the family book. The shapes match the
  * Supabase tables; when Supabase is configured, every save is also pushed
  * there under the owner's session (see lib/data/remote.ts) so the book
  * survives beyond this device. Demo mode works with no keys at all.
@@ -49,6 +49,13 @@ export function newId() {
     const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0"));
     return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
   }
+}
+
+/** An unguessable share-link token: 24 random bytes as 48 hex characters (what the API and database accept). */
+export function newShareToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export function saveBook(book: FamilyBook) {

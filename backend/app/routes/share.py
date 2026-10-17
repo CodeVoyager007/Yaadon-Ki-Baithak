@@ -95,11 +95,11 @@ async def share(token: str, request: Request):
         turns_by_session.setdefault(t["session_id"], []).append(turn)
 
     by_session = {s["id"]: s for s in sessions}
-    chapters = await asyncio.gather(*(_chapter(admin, row, by_session, turns_by_session) for row in chapter_rows))
+    chapters = await asyncio.gather(*(_chapter(admin, family_id, row, by_session, turns_by_session) for row in chapter_rows))
     return {"familyName": family["name"], "elders": elders, "chapters": list(chapters)}
 
 
-async def _chapter(admin: Supa, row: dict, by_session: dict, turns_by_session: dict) -> dict:
+async def _chapter(admin: Supa, family_id: str, row: dict, by_session: dict, turns_by_session: dict) -> dict:
     session = by_session.get(row["session_id"], {})
     chapter: dict = {
         "title": {"ur": row["title_ur"], "en": row["title_en"]},
@@ -120,8 +120,11 @@ async def _chapter(admin: Supa, row: dict, by_session: dict, turns_by_session: d
         "chapter": chapter,
         "turns": turns_by_session.get(row["session_id"], []),
     }
-    if row.get("image_path"):
-        url = await admin.signed_url("images", row["image_path"], SIGN_SECONDS)
+    # image_path is written by the family, and the service role can sign anything, so only
+    # ever sign a file inside this family's own folder (no "../", no other family's id).
+    path = row.get("image_path") or ""
+    if path.startswith(f"{family_id}/") and ".." not in path:
+        url = await admin.signed_url("images", path, SIGN_SECONDS)
         if url:
             out["imageUrl"] = url
     return out

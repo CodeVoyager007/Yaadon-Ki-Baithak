@@ -25,6 +25,22 @@ log = logging.getLogger("baithak.voice")
 MAX_AUDIO = 20 * 1024 * 1024
 
 
+def sniff_audio(data: bytes) -> Optional[tuple[str, str]]:
+    """(mime type, file extension) from the file's own first bytes, or None if it isn't audio we take.
+    The browser's label is never trusted: a file called audio could be HTML."""
+    if data[:4] == b"\x1a\x45\xdf\xa3":
+        return "audio/webm", "webm"
+    if data[:4] == b"OggS":
+        return "audio/ogg", "ogg"
+    if data[4:8] == b"ftyp":
+        return "audio/mp4", "m4a"
+    if data[:4] == b"RIFF" and data[8:12] == b"WAVE":
+        return "audio/wav", "wav"
+    if data[:3] == b"ID3" or (len(data) > 1 and data[0] == 0xFF and data[1] & 0xE0 == 0xE0):
+        return "audio/mpeg", "mp3"
+    return None
+
+
 @router.post("/transcribe")
 async def transcribe(request: Request):
     """FormData { audio, lang, sessionId? } -> { text, audioPath? }.
@@ -48,9 +64,12 @@ async def transcribe(request: Request):
     data = await audio.read(MAX_AUDIO + 1)
     if not data or len(data) > MAX_AUDIO:
         raise bad_body()
+    kind = sniff_audio(data)
+    if not kind:
+        raise bad_body()
+    mime, ext = kind
     lang = "en" if form.get("lang") == "en" else "ur"
     session_id = form.get("sessionId") if isinstance(form.get("sessionId"), str) else None
-    mime = audio.content_type or "audio/webm"
 
     text = await _hear(data, mime, lang)
     if text is None:
@@ -60,7 +79,7 @@ async def transcribe(request: Request):
     audio_path = None
     if caller.user_id and caller.token and session_id:
         try:
-            audio_path = await _save_clip(caller.token, caller.user_id, session_id, data, mime)
+            audio_path = await _save_clip(caller.token, caller.user_id, session_id, data, mime, ext)
         except Exception as err:
             log.warning("[api/transcribe] clip not stored: %s", err)
     return {"text": text, "audioPath": audio_path}
@@ -82,7 +101,7 @@ async def _hear(data: bytes, mime: str, lang: str) -> Optional[str]:
     return None
 
 
-async def _save_clip(token: str, user_id: str, session_id: str, data: bytes, mime: str) -> Optional[str]:
+async def _save_clip(token: str, user_id: str, session_id: str, data: bytes, mime: str, ext: str) -> Optional[str]:
     """Session -> elder -> family, read as the caller, stopping the moment RLS hides a link."""
     try:
         uuid.UUID(session_id)
@@ -98,7 +117,6 @@ async def _save_clip(token: str, user_id: str, session_id: str, data: bytes, mim
     )
     if not family:
         return None
-    ext = "m4a" if any(k in mime.lower() for k in ("mp4", "m4a", "aac")) else "webm"
     path = f"{family['id']}/audio/{uuid.uuid4()}.{ext}"
     await db.upload("audio", path, data, mime)
     return path

@@ -86,7 +86,7 @@ def test_skip_before_any_answer_still_gets_a_question(env, api, monkeypatch):
     res = api.post("/api/turn", json={**BODY, "turns": [], "skipped": True})
     assert res.status_code == 200 and res.json()["signals"]["skipped"] is True
     # The writer still needs something to write from.
-    assert api.post("/api/story", json={**BODY, "turns": []}).status_code == 400
+    assert api.post("/api/chapter", json={**BODY, "turns": []}).status_code == 400
 
 
 def test_bad_bodies_are_400(env, api):
@@ -118,8 +118,68 @@ def test_cors_allows_the_frontend_only(env, api):
 
 
 def test_rate_limit(env, api):
-    codes = [api.post("/api/turn", json=BODY).status_code for _ in range(61)]
-    assert codes[59] == 501 and codes[60] == 429
+    codes = [api.post("/api/turn", json=BODY).status_code for _ in range(31)]
+    assert codes[29] == 501 and codes[30] == 429
+
+
+def test_spoofed_forwarded_for_does_not_reset_the_limit(env, api):
+    # Only the hop our own proxy appended (the rightmost) counts; the client's own entries don't.
+    codes = [api.post("/api/turn", json=BODY, headers={"X-Forwarded-For": f"10.0.0.{i}, 203.0.113.9"}).status_code for i in range(31)]
+    assert codes[-1] == 429
+
+
+def test_chapters_and_paintings_have_a_small_budget(env, api, monkeypatch):
+    env(GEMINI_API_KEY="k")
+    monkeypatch.setattr(gemini, "generate_json", fake_model(*[CHAPTER] * 8))
+    turns = [{"role": "elder", "text": "Cardamom and wet earth after rain.", "lang": "en"}]
+    codes = [api.post("/api/chapter", json={**BODY, "turns": turns}).status_code for _ in range(8)]
+    assert codes.count(200) == 6 and codes[-1] == 429
+
+
+def test_one_account_cannot_dodge_limits_by_changing_networks(env, api, monkeypatch):
+    env(GEMINI_API_KEY="k", SUPABASE_URL="https://x.supabase.co", SUPABASE_ANON_KEY="anon")
+
+    async def who(token):
+        return "user-1"
+
+    monkeypatch.setattr(security, "user_id_for", who)
+    monkeypatch.setattr(gemini, "generate_json", fake_model(*[{}] * 20))
+    codes = [
+        api.post("/api/chapter", json=BODY, headers={"Authorization": "Bearer t", "X-Forwarded-For": f"x, 198.51.100.{i}"}).status_code
+        for i in range(8)
+    ]
+    assert codes[-1] == 429
+
+
+def test_audio_is_identified_by_its_bytes_not_its_label(env, api, monkeypatch):
+    env(GEMINI_API_KEY="k")
+
+    async def hear(data, mime, lang):
+        return "words"
+
+    monkeypatch.setattr(gemini, "transcribe", hear)
+    html = api.post("/api/transcribe", files={"audio": ("a.webm", b"<script>alert(1)</script>", "audio/webm")}, data={"lang": "ur"})
+    assert html.status_code == 400
+    webm = api.post("/api/transcribe", files={"audio": ("a", b"\x1a\x45\xdf\xa3" + b"0" * 100, "text/html")}, data={"lang": "ur"})
+    assert webm.status_code == 200 and webm.json()["text"] == "words"
+
+
+def test_bodies_are_limited_while_streaming(env, api):
+    env(GEMINI_API_KEY="k")
+
+    def chunks():
+        for _ in range(8):
+            yield b"a" * 65536
+
+    assert api.post("/api/turn", content=chunks(), headers={"content-type": "application/json"}).status_code == 400
+    assert api.post("/api/turn", content=b"[" * 50000 + b"]" * 50000).status_code == 400
+
+
+def test_security_headers_on_every_response(env, api):
+    for res in (api.get("/health"), api.post("/api/turn", json=BODY)):
+        assert res.headers["x-content-type-options"] == "nosniff"
+        assert res.headers["cache-control"] == "no-store"
+        assert "default-src 'none'" in res.headers["content-security-policy"]
 
 
 def test_tts_repeats_are_cached(env, api, monkeypatch):
