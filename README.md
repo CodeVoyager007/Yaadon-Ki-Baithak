@@ -6,43 +6,49 @@ An AI agent that interviews grandparents by voice in Urdu and turns their memori
 
 ## Quick start
 
-You need Node.js 22.18 or newer for the agent tests (the app itself runs on 20.9+). From the repo root:
+Two processes: the Python backend (the agents) and the Next.js frontend.
 
 ```bash
+# 1. Backend — Python 3.11+
+cd backend
+python -m venv .venv && . .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+cp .env.example .env                                # add keys; APP_ENV=development
+uvicorn app.main:app --env-file .env --reload --port 8000
+
+# 2. Frontend — Node 20.9+, from the repo root in a second terminal
 npm install
-copy frontend\.env.example frontend\.env.local   # macOS/Linux: cp frontend/.env.example frontend/.env.local
+cp frontend/.env.example frontend/.env.local        # NEXT_PUBLIC_API_URL=http://localhost:8000
 npm run dev
 ```
 
-Open http://localhost:3000 — it runs in demo mode with no keys, and lights up fully (accounts, AI interviewer, story writer, paintings, sharing) once the keys and Supabase migrations are in place.
+Open http://localhost:3000. With no backend URL or no keys the app still runs in
+demo mode on honest stand-ins (practice questions, transcript-only drafts).
 
 ```bash
-npm run build       # production build
-npm run typecheck   # all three workspaces (run the build once first)
-npm test            # agent tests, no network, no keys
+cd backend && pytest   # 32 tests: agents, orchestrator, HTTP; no keys, no network
+npm run build          # frontend production build (then npm run typecheck)
 ```
 
 ## Structure
 
-One npm workspace, three parts, one deployment:
-
 ```
-frontend/   @baithak/web       Next.js 16 app: pages, components, browser stores, proxy.ts.
-                               app/api/* are one-line re-exports of backend handlers.
-backend/    @baithak/backend   Route handlers (standard Request/Response), auth + rate-limit
-                               guard, Gemini/Cloudflare clients, Supabase admin, migrations.
-agents/     @baithak/agents    Interviewer, story writer, illustrator: prompts, output
-                               validation, safety rules, retries. No keys, no fetch. Tested.
-docs/                          Setup and team guide, raw art assets.
+frontend/   Next.js 16 (Vercel). Pages, components, browser stores, Supabase auth.
+            lib/api.ts is the only door to the backend; lib/types.ts is the contract.
+backend/    Python + FastAPI (Docker: Hugging Face Spaces / Render).
+  agents/   interviewer (Birdy), story writer, illustrator, orchestrator. No keys, no I/O.
+  app/      routes, auth, rate limit, Gemini/Cloudflare clients, Supabase storage.
+  supabase/ migrations: schema + row level security.
+docs/       setup and team guide, raw art assets.
 ```
 
-Dependencies only point one way: `frontend → backend → agents`. The browser
-never imports `backend/` (it calls `/api/*` through `frontend/lib/api.ts`), and
-the agents never know which model provider or framework runs them.
+The browser calls the backend directly (`NEXT_PUBLIC_API_URL`) with the signed-in
+user's Supabase access token. The backend checks that token, runs the agents, and
+keeps every AI and service-role key. None of them ever reach the frontend.
 
-**Deploying on Vercel:** set the project's *Root Directory* to `frontend`
-(it was `frontend/apps/web` before this layout). Vercel installs the workspace
-from the repo root, so `backend/` and `agents/` are included automatically.
+**Deploy:** backend first (see [backend/README.md §6](./backend/README.md#6-deploy)),
+then on Vercel set Root Directory `frontend`, `NEXT_PUBLIC_API_URL` to the backend
+URL, and add the Vercel URL to the backend's `ALLOWED_ORIGINS`.
 
 ## Read first
 
@@ -50,5 +56,4 @@ from the repo root, so `backend/` and `agents/` are included automatically.
 | --- | --- |
 | [docs/SETUP.md](./docs/SETUP.md) | Environment variables, Supabase checklist, team ownership, rules |
 | [frontend/DESIGN.md](./frontend/DESIGN.md) | Design system — required reading before touching the UI |
-| [backend/README.md](./backend/README.md) | Server architecture: routes, error contract, auth, database |
-| [agents/README.md](./agents/README.md) | The three agents: what each decides and what code guarantees |
+| [backend/README.md](./backend/README.md) | The agents and orchestrator, routes, error contract, auth, deploy, database |

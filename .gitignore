@@ -8,3 +8,6 @@ out
 .DS_Store
 next-env.d.ts
 *.tsbuildinfo
+__pycache__
+.pytest_cache
+.venv

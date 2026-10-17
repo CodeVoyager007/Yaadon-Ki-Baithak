@@ -14,11 +14,12 @@ import { NightSky } from "@/components/scene/NightSky";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 import { elderLabel, loadBook, type FamilyBook, type Language, type Relation, type Theme } from "@/lib/book-store";
 import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
+import { apiUrl, hasBackend } from "@/lib/api";
 import { THEMES } from "@/lib/themes";
 
 /**
  * Read-only family book for relatives who open a shared link.
- * The server route checks the token against share_links (revoked or expired
+ * The backend checks the token against share_links (revoked or expired
  * links die there) and serves the book from the database, so the link works
  * on any device. When that isn't set up, the page falls back to the copy
  * saved on this device, which keeps the local demo flowing.
@@ -58,7 +59,8 @@ export default function SharePage() {
     (async () => {
       // First choice: the server, which validates the token and reads the book.
       try {
-        const res = await fetch(`/api/share/${encodeURIComponent(token)}`);
+        if (!hasBackend) throw new Error("no backend");
+        const res = await fetch(apiUrl(`/api/share/${encodeURIComponent(token)}`));
         if (res.ok) {
           const data = (await res.json()) as SharedBook;
           if (cancelled) return;

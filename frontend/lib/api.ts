@@ -1,21 +1,46 @@
 /**
- * The frontend's only door to the AI agents.
+ * The frontend's only door to the AI agents, which run in the separate
+ * Python backend (backend/, NEXT_PUBLIC_API_URL).
  *
- * Every function calls the real API route first. While a route still
- * answers 501 ("not built yet") or is unreachable, it falls back to a
- * plain stand-in so the whole app can be clicked through. The stand-ins
- * never invent anything: the stand-in "writer" only uses the elder's own
- * transcribed words.
+ * Every function calls the backend first. While it is unset, unreachable or
+ * answers an error, each falls back to a plain stand-in so the whole app can
+ * be clicked through. The stand-ins never invent anything: the stand-in
+ * "writer" only uses the elder's own transcribed words.
+ *
+ * The signed-in family historian's Supabase access token rides along as
+ * `Authorization: Bearer`; the backend checks it with Supabase.
  *
  * Request and response shapes here are the contract for the backend.
  */
-import type { Chapter, ElderProfile, InterviewerDecision } from "@baithak/agents";
+import type { Chapter, ElderProfile, InterviewerDecision, TraceStep } from "./types";
 import type { Elder, Theme } from "./book-store";
 import { elderLabel } from "./book-store";
 import type { Turn } from "./chapter-store";
 import { PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
+import { hasSupabase, supabaseBrowser } from "./supabase/client";
 
 export type Source = "ai" | "stand-in";
+
+const API = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+
+/** False when no backend is configured: every call goes straight to its stand-in. */
+export const hasBackend = API !== "";
+
+/** Full URL of a backend route, e.g. apiUrl("/api/share/abc"). */
+export function apiUrl(path: string) {
+  return `${API}${path}`;
+}
+
+/** The signed-in user's access token for the backend; nothing in demo mode. */
+async function authHeaders(): Promise<Record<string, string>> {
+  if (!hasSupabase) return {};
+  try {
+    const { data } = await supabaseBrowser().auth.getSession();
+    return data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+  } catch {
+    return {};
+  }
+}
 
 function profile(elder: Elder): ElderProfile {
   return {
@@ -33,11 +58,12 @@ function plain(turns: Turn[]) {
   return turns.map(({ role, text, lang, at, index }) => ({ role, text, lang, index, startedAt: at }));
 }
 
-async function post<T>(url: string, body: unknown): Promise<T | null> {
+async function post<T>(path: string, body: unknown): Promise<T | null> {
+  if (!hasBackend) return null;
   try {
-    const res = await fetch(url, {
+    const res = await fetch(apiUrl(path), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await authHeaders()) },
       body: JSON.stringify(body),
     });
     if (!res.ok) return null;
@@ -92,11 +118,12 @@ export async function transcribe(
   sessionId?: string,
 ): Promise<{ text: string; audioPath?: string; source: Source }> {
   try {
+    if (!hasBackend) throw new Error("no backend");
     const form = new FormData();
     form.append("audio", audio, "answer.webm");
     form.append("lang", lang);
     if (sessionId) form.append("sessionId", sessionId);
-    const res = await fetch("/api/transcribe", { method: "POST", body: form });
+    const res = await fetch(apiUrl("/api/transcribe"), { method: "POST", body: form, headers: await authHeaders() });
     if (res.ok) {
       const { text, audioPath } = (await res.json()) as { text: string; audioPath?: string };
       if (text?.trim()) return { text: text.trim(), audioPath, source: "ai" as Source };
@@ -114,8 +141,29 @@ export async function transcribe(
 export async function writeChapter(elder: Elder, theme: Theme, turns: Turn[]) {
   const ai = await post<Chapter>("/api/story", { elder: profile(elder), theme, turns: plain(turns) });
   if (ai) return { chapter: ai, source: "ai" as Source };
+  return { chapter: transcriptDraft(elder, theme, turns), source: "stand-in" as Source };
+}
 
-  // Stand-in: the elder's own words, in order, nothing added.
+/* ---------------------------------------------------------------- */
+/* POST /api/chapter  { elder, theme, turns, familySeed }              */
+/*                     -> { chapter, imageUrl?, trace }                */
+/* The orchestrator's hand-off: story writer, then illustrator.        */
+/* ---------------------------------------------------------------- */
+export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn[], familySeed: number) {
+  const ai = await post<{ chapter: Chapter; imageUrl?: string | null; trace: TraceStep[] }>("/api/chapter", {
+    elder: profile(elder),
+    theme,
+    turns: plain(turns),
+    familySeed,
+  });
+  if (ai?.chapter) {
+    return { chapter: ai.chapter, imageUrl: ai.imageUrl ?? undefined, trace: ai.trace ?? [], source: "ai" as Source };
+  }
+  return { chapter: transcriptDraft(elder, theme, turns), imageUrl: undefined, trace: [] as TraceStep[], source: "stand-in" as Source };
+}
+
+/** Stand-in chapter: the elder's own words, in order, nothing added. */
+function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
   const answers = turns.filter((t) => t.role === "elder" && t.text.trim());
   const ur = answers.filter((t) => t.lang === "ur").map((t) => t.text.trim());
   const en = answers.filter((t) => t.lang === "en").map((t) => t.text.trim());
@@ -136,7 +184,7 @@ export async function writeChapter(elder: Elder, theme: Theme, turns: Turn[]) {
     year: theme === "1947" ? "1947" : undefined,
     place: elder.birthplace,
   };
-  return { chapter, source: "stand-in" as Source };
+  return chapter;
 }
 
 /* ---------------------------------------------------------------- */
@@ -158,9 +206,10 @@ export async function speak(text: string, lang: "ur" | "en") {
   speaking?.pause();
   if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   try {
-    const res = await fetch("/api/tts", {
+    if (!hasBackend) throw new Error("no backend");
+    const res = await fetch(apiUrl("/api/tts"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await authHeaders()) },
       body: JSON.stringify({ text, lang }),
     });
     if (res.ok && res.headers.get("content-type")?.startsWith("audio")) {

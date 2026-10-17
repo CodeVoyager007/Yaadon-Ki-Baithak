@@ -1,9 +1,9 @@
 /**
  * Recording sessions and finished chapters, stored locally and mirrored to
  * Supabase (sessions / turns / chapters) when it is configured. The chapter
- * shape is the story writer's output from @baithak/agents.
+ * shape is the story writer's output (lib/types.ts).
  */
-import type { Chapter } from "@baithak/agents";
+import type { Chapter } from "./types";
 import type { SampleChapter } from "./samples";
 import { loadBook, type Theme } from "./book-store";
 import { hasSupabase } from "./supabase/client";

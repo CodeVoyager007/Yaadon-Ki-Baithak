@@ -8,7 +8,7 @@ import { AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BirdySays } from "@/components/app/SpeechBubble";
 import { PixelLantern } from "@/components/effects/PixelLantern";
-import { illustrate, writeChapter } from "@/lib/api";
+import { writeAndIllustrate } from "@/lib/api";
 import { elderLabel, getElder, loadBook, newId } from "@/lib/book-store";
 import { getChapterForSession, getSession, saveChapter, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { THEMES } from "@/lib/themes";
@@ -79,8 +79,11 @@ function Writing() {
       if (heard < answers.length) say(`${answers.length - heard} answer${answers.length - heard === 1 ? "" : "s"} had no transcript yet. The voice is still saved.`);
       mark(0, "done");
 
+      // One call: the backend's orchestrator hands the session to the story
+      // writer, then passes the writer's scene to the illustrator.
       mark(1, "working");
-      const written = await writeChapter(elder, session.theme, session.turns);
+      const seed = book.familyName.split("").reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 100000, 7);
+      const written = await writeAndIllustrate(elder, session.theme, session.turns, seed);
       say(
         written.source === "ai"
           ? `Every part of the chapter is linked to the answer it came from (${written.chapter.sourceTurns.length} answers used).`
@@ -89,9 +92,8 @@ function Writing() {
       mark(1, "done");
 
       mark(2, "working");
-      const seed = book.familyName.split("").reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 100000, 7);
-      const art = await illustrate(written.chapter, seed);
-      say(art.source === "ai" ? "Painted in the family book's style." : "Using the topic's painting for now — the illustrator isn't available.");
+      await pause(400);
+      say(written.imageUrl ? "Painted in the family book's style." : "Using the topic's painting for now — the illustrator isn't available.");
       mark(2, "done");
 
       mark(3, "working");
@@ -105,7 +107,7 @@ function Writing() {
         createdAt: new Date().toISOString(),
         chapter: written.chapter,
         turns: session.turns,
-        imageUrl: art.imageUrl,
+        imageUrl: written.imageUrl,
         draft: written.source !== "ai",
       };
       saveChapter(stored);
