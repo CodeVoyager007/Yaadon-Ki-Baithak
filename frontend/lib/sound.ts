@@ -52,14 +52,18 @@ export class NightSound {
     if (this.running) return;
     if (!this.ctx) this.build();
     if (!this.ctx || !this.master) return;
-    void this.ctx.resume();
-    const t = this.ctx.currentTime;
-    this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setValueAtTime(this.master.gain.value, t);
-    this.master.gain.linearRampToValueAtTime(1.6, t + 2);
-    this.running = true;
-    this.nextBar = t + 0.3;
-    this.tick();
+    try {
+      void this.ctx.resume().catch(() => {});
+      const t = this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);
+      this.master.gain.setValueAtTime(this.master.gain.value, t);
+      this.master.gain.linearRampToValueAtTime(1.6, t + 2);
+      this.running = true;
+      this.nextBar = t + 0.3;
+      this.tick();
+    } catch {
+      this.running = false;
+    }
   }
 
   stop() {
@@ -171,26 +175,33 @@ export class NightSound {
   }
 
   private build() {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return;
-    const ctx = new Ctor();
-    this.ctx = ctx;
+    if (typeof window === "undefined") return;
+    try {
+      const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) return;
+      const ctx = new Ctor();
+      this.ctx = ctx;
 
-    this.master = ctx.createGain();
-    this.master.gain.value = 0;
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -16;
-    comp.ratio.value = 3;
-    this.master.connect(comp).connect(ctx.destination);
+      this.master = ctx.createGain();
+      this.master.gain.value = 0;
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -16;
+      comp.ratio.value = 3;
+      this.master.connect(comp).connect(ctx.destination);
 
-    // Dry piano plus a soft room.
-    this.bus = ctx.createGain();
-    this.bus.connect(this.master);
-    const reverb = ctx.createConvolver();
-    reverb.buffer = this.impulse(3.2);
-    const wet = ctx.createGain();
-    wet.gain.value = 0.38;
-    this.bus.connect(reverb).connect(wet).connect(this.master);
+      // Dry piano plus a soft room.
+      this.bus = ctx.createGain();
+      this.bus.connect(this.master);
+      const reverb = ctx.createConvolver();
+      reverb.buffer = this.impulse(3.2);
+      const wet = ctx.createGain();
+      wet.gain.value = 0.38;
+      this.bus.connect(reverb).connect(wet).connect(this.master);
+    } catch {
+      this.ctx = null;
+      this.master = null;
+      this.bus = null;
+    }
   }
 
   private impulse(seconds: number) {
