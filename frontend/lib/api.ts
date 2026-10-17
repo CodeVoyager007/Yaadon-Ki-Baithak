@@ -12,7 +12,7 @@
  *
  * Request and response shapes here are the contract for the backend.
  */
-import type { Chapter, ElderProfile, InterviewerDecision, TraceStep } from "./types";
+import type { Chapter, ElderProfile, InterviewerDecision, TraceStep, Turn as WireTurn } from "./types";
 import type { Elder, Theme } from "./book-store";
 import { elderLabel } from "./book-store";
 import type { Turn } from "./chapter-store";
@@ -54,7 +54,7 @@ function profile(elder: Elder): ElderProfile {
 
 /** turns sent to the agents: text only, no local clip ids. The index keeps
  * the writer's sourceTurns pointing at the right turn after server clamping. */
-function plain(turns: Turn[]) {
+function plain(turns: Turn[]): WireTurn[] {
   return turns.map(({ role, text, lang, at, index }) => ({ role, text, lang, index, startedAt: at }));
 }
 
@@ -73,9 +73,7 @@ async function post<T>(path: string, body: unknown): Promise<T | null> {
   }
 }
 
-/* ---------------------------------------------------------------- */
-/* POST /api/turn  { elder, theme, turns } -> InterviewerDecision     */
-/* ---------------------------------------------------------------- */
+/** POST /api/turn  { elder, theme, turns, skipped } -> InterviewerDecision */
 export async function askNext(elder: Elder, theme: Theme, turns: Turn[], skipped = false) {
   const ai = await post<InterviewerDecision>("/api/turn", { elder: profile(elder), theme, turns: plain(turns), skipped });
   if (ai) return { decision: ai, source: "ai" as Source };
@@ -107,10 +105,7 @@ export async function askNext(elder: Elder, theme: Theme, turns: Turn[], skipped
   };
 }
 
-/* ---------------------------------------------------------------- */
-/* POST /api/transcribe  FormData { audio, lang, sessionId? }          */
-/*                              -> { text, audioPath? }                */
-/* ---------------------------------------------------------------- */
+/** POST /api/transcribe  FormData { audio, lang, sessionId? } -> { text, audioPath? } */
 export async function transcribe(
   audio: Blob,
   lang: "ur" | "en",
@@ -135,20 +130,7 @@ export async function transcribe(
   return { text: liveCaption.trim(), source: "stand-in" as Source };
 }
 
-/* ---------------------------------------------------------------- */
-/* POST /api/story  { elder, theme, turns } -> Chapter                 */
-/* ---------------------------------------------------------------- */
-export async function writeChapter(elder: Elder, theme: Theme, turns: Turn[]) {
-  const ai = await post<Chapter>("/api/story", { elder: profile(elder), theme, turns: plain(turns) });
-  if (ai) return { chapter: ai, source: "ai" as Source };
-  return { chapter: transcriptDraft(elder, theme, turns), source: "stand-in" as Source };
-}
-
-/* ---------------------------------------------------------------- */
-/* POST /api/chapter  { elder, theme, turns, familySeed }              */
-/*                     -> { chapter, imageUrl?, trace }                */
-/* The orchestrator's hand-off: story writer, then illustrator.        */
-/* ---------------------------------------------------------------- */
+/** POST /api/chapter  { elder, theme, turns, familySeed } -> { chapter, imageUrl?, trace }: the writer, then the illustrator. */
 export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn[], familySeed: number) {
   const ai = await post<{ chapter: Chapter; imageUrl?: string | null; trace: TraceStep[] }>("/api/chapter", {
     elder: profile(elder),
@@ -187,18 +169,7 @@ function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
   return chapter;
 }
 
-/* ---------------------------------------------------------------- */
-/* POST /api/illustrate  { chapter, familySeed } -> { imageUrl }       */
-/* ---------------------------------------------------------------- */
-export async function illustrate(chapter: Chapter, familySeed: number) {
-  const ai = await post<{ imageUrl: string }>("/api/illustrate", { chapter, familySeed });
-  if (ai?.imageUrl) return { imageUrl: ai.imageUrl, source: "ai" as Source };
-  return { imageUrl: undefined, source: "stand-in" as Source };
-}
-
-/* ---------------------------------------------------------------- */
-/* POST /api/tts  { text, lang } -> audio                               */
-/* ---------------------------------------------------------------- */
+/** POST /api/tts  { text, lang } -> audio */
 let speaking: HTMLAudioElement | null = null;
 
 /** Hudhud reads a question aloud: the Urdu voice from /api/tts, else the browser's own voice. */

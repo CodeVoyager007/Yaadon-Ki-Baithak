@@ -4,8 +4,8 @@ import type { Language, Relation } from "@/lib/book-store";
 
 /** Form pieces shared by onboarding and "Add another elder". Dark glass style. */
 
-export const RELATIONS: Relation[] = ["Nani", "Nana", "Dadi", "Dada", "Other"];
-export const LANGUAGES: { id: Language; ready: boolean }[] = [
+const RELATIONS: Relation[] = ["Nani", "Nana", "Dadi", "Dada", "Other"];
+const LANGUAGES: { id: Language; ready: boolean }[] = [
   { id: "Urdu", ready: true },
   { id: "English", ready: true },
   { id: "Punjabi", ready: false },
@@ -86,7 +86,7 @@ export function TextInput({
   );
 }
 
-export function ChipGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function ChipGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <fieldset>
       <legend className="text-sm font-bold text-moon">{label}</legend>
@@ -95,7 +95,7 @@ export function ChipGroup({ label, children }: { label: string; children: React.
   );
 }
 
-export function Chip({ active, disabled, onClick, children }: { active: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({ active, disabled, onClick, children }: { active: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"

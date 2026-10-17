@@ -17,7 +17,7 @@ const CY = 38.44;
 const LID = "#c8432b";
 const LID_EDGE = "#7a2416";
 
-export type EyeLook = "open" | "soft";
+type EyeLook = "open" | "soft";
 
 /*
  * Lid offsets in the 0..100 box. The top lid's lower edge sits at 52 and the

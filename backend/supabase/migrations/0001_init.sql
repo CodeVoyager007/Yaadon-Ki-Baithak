@@ -1,4 +1,4 @@
--- Yaadon ki Baithak: first schema. Owner: Humema (Database).
+-- Yaadon ki Baithak: first schema.
 -- Every table is private to the family's owner. Share links expose read-only chapters.
 
 create table public.families (
@@ -16,7 +16,7 @@ create table public.elders (
   language text not null default 'Urdu',
   birthplace text,
   birth_year text,
-  consent_given_at timestamptz,           -- M1: elder agreed to be recorded
+  consent_given_at timestamptz,           -- when the elder agreed to be recorded
   created_at timestamptz not null default now()
 );
 

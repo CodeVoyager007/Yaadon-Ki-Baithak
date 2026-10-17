@@ -13,13 +13,13 @@ type Recognition = {
   stop: () => void;
 };
 
-export type Take = { blob: Blob; durationMs: number; caption: string };
-export type MicStatus = "idle" | "asking" | "recording" | "denied" | "unsupported";
+type Take = { blob: Blob; durationMs: number; caption: string };
+type MicStatus = "idle" | "asking" | "recording" | "denied" | "unsupported";
 
 /**
  * Records one answer at a time: the real audio (MediaRecorder), a live
  * volume level for the Diya flame, and live captions from the browser
- * when it supports them (a stand-in until /api/transcribe exists).
+ * when it supports them (used if the server can't transcribe the answer).
  */
 export function useRecorder(lang: "ur" | "en") {
   const [status, setStatus] = useState<MicStatus>("idle");

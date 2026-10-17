@@ -44,7 +44,7 @@ python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activ
 pip install -r requirements-dev.txt
 cp .env.example .env                              # fill in keys; APP_ENV=development
 uvicorn app.main:app --env-file .env --reload --port 8000
-pytest                                            # 33 tests, no keys needed
+pytest                                            # 39 tests, no keys needed
 ```
 
 Then set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`
@@ -98,8 +98,6 @@ actually did:
 | --- | --- | --- |
 | `POST /api/turn` | `{ elder, theme, turns, skipped? }` | `InterviewerDecision` + `handoff` + `signals` (what Hudhud noticed) + `trace` |
 | `POST /api/chapter` | `{ elder, theme, turns, familySeed }` | `{ chapter, imageUrl?, trace }`: the orchestrated hand-off |
-| `POST /api/story` | `{ elder, theme, turns }` | `Chapter` (writer only) |
-| `POST /api/illustrate` | `{ chapter, familySeed }` | `{ imageUrl }`, the "New picture" button |
 | `POST /api/transcribe` | FormData `{ audio, lang, sessionId? }` | `{ text, audioPath? }`. Gemini, then Whisper as backup; the clip is stored with the caller's token |
 | `POST /api/tts` | `{ text, lang }` | `audio/wav`, Hudhud's voice only, cached by text |
 | `GET /api/share/{token}` | none | read-only family book (public, service role after the token check) |
@@ -110,15 +108,25 @@ Bodies are capped (JSON 256 KB, audio 20 MB) and every field is clamped. Turns
 keep their original `index` so `sourceTurns` survive clamping. There's no
 Vercel 4.5 MB body limit any more, so long answers reach the transcriber.
 
-## 4. Auth, CORS, limits
+## 4. Security
 
 - The browser sends the signed-in user's Supabase access token as
   `Authorization: Bearer`. The backend checks it with Supabase Auth
   (`/auth/v1/user`) and caches the result for 60 s. Missing or invalid → `401`.
 - No cookies means no CSRF. Instead, `ALLOWED_ORIGINS` (CORS) lists which
   sites may call the API.
-- Rate limit: 60 requests/minute per route per client IP, in memory, so it's
-  per instance.
+- Rate limits, per minute, both per client IP and per account: 30 for turns,
+  transcription and voice, 6 for chapters (the free FLUX quota is ~170 images a
+  day), 60 for share reads. The client IP is the hop our own proxy added to
+  `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`), never a value the client wrote.
+  In memory, so per instance.
+- Request bodies are limited while they stream in (256 KB JSON, 21 MB audio), so
+  a chunked request with no declared size can't fill memory or disk.
+- Uploaded audio is identified from its own bytes (WebM, Ogg, MP4, WAV, MP3) and
+  stored under that type; anything else is refused, whatever the browser claims.
+- The share read only signs files inside the shared family's own folder.
+- Every response carries `nosniff`, `no-store`, no referrer, no framing and a
+  deny-all content policy. Docs and OpenAPI are off; errors never echo internals.
 - `APP_ENV` defaults to production: without Supabase keys the routes answer
   `503`. Only `APP_ENV=development` lets the API run without accounts on your own machine.
 - The service role key is used in exactly two places: the painting upload and
@@ -149,6 +157,7 @@ errors are logged server-side only and never sent to the client.
 2. Space → Settings → *Variables and secrets*: add every key from `.env.example`
    as a **secret**. Leave `APP_ENV` unset (production), and set
    `ALLOWED_ORIGINS=https://YOUR-SITE.vercel.app,http://localhost:3000`.
+   The image already sets `TRUSTED_PROXY_HOPS=1` for the Space's proxy.
 3. Push only this folder to the Space, from the repo root:
    ```bash
    git remote add space https://huggingface.co/spaces/YOUR-USER/baithak-api
@@ -168,7 +177,9 @@ idle and takes about 50 s to wake, which is risky in a live demo unless you open
 
 Schema and RLS: `supabase/migrations/0001_init.sql` (apply with the SQL editor or
 `supabase db push`), plus `0002_turn_duration.sql` (turn durations and the
-foreign-key indexes the share read filters on).
+foreign-key indexes the share read filters on) and `0003_hardening.sql` (only
+signed-in users may call `owns_family()`, and share tokens must be 24-64 random
+characters).
 
 ```
 families 1─* elders 1─* sessions 1─* turns

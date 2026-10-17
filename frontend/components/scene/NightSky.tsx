@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useMemo, useRef } from "react";
 import { seeded } from "@/lib/random";
 import skyline from "./karachi-skyline.jpg";
@@ -12,29 +12,19 @@ type Props = {
   full?: boolean;
   /** The painted Karachi skyline along the bottom. "dim" keeps it low and quiet behind forms. */
   skyline?: boolean | "dim";
-  /**
-   * Hero "camera" progress (0 to 1) from a pinned scroll scene. When given,
-   * the sky drifts, the moon rises and the city pushes in like a film shot.
-   */
-  camera?: MotionValue<number>;
 };
 
 /**
  * Karachi at night: pixel stars, a soft moon, paper lanterns drifting up,
  * and a painted skyline (Mazar-e-Quaid, Empress Market, the port).
  */
-export function NightSky({ full = true, skyline: showSkyline = true, camera }: Props) {
+export function NightSky({ full = true, skyline: showSkyline = true }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const p = camera ?? scrollYProgress;
-  const still = reduce ?? false;
-  // With a camera: stars and moon rise away, the city pushes in. Without: gentle parallax.
-  const starsY = useTransform(p, [0, 1], still ? [0, 0] : camera ? [0, -110] : [0, 60]);
-  const moonY = useTransform(p, [0, 1], still ? [0, 0] : camera ? [0, -190] : [0, 120]);
-  const moonX = useTransform(p, [0, 1], still || !camera ? [0, 0] : [0, -90]);
-  const cityScale = useTransform(p, [0, 1], still || !camera ? [1, 1] : [1, 1.3]);
-  const cityY = useTransform(p, [0, 1], still || !camera ? ["0%", "0%"] : ["0%", "-7%"]);
+  // A gentle parallax as the page scrolls: stars and moon drift slower than the content.
+  const starsY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [0, 60]);
+  const moonY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [0, 120]);
 
   const stars = useMemo(() => {
     const r = seeded(1947);
@@ -95,7 +85,7 @@ export function NightSky({ full = true, skyline: showSkyline = true, camera }: P
       </motion.div>
 
       {/* moon */}
-      <motion.div style={{ y: moonY, x: moonX }} className="absolute right-[6%] top-[11%] h-16 w-16 opacity-80 sm:h-40 sm:w-40 sm:opacity-100 md:top-[9%] md:right-[8%]">
+      <motion.div style={{ y: moonY }} className="absolute right-[6%] top-[11%] h-16 w-16 opacity-80 sm:h-40 sm:w-40 sm:opacity-100 md:top-[9%] md:right-[8%]">
         <div className="absolute -inset-16 rounded-full bg-[radial-gradient(circle,rgba(255,244,220,0.35),transparent_65%)]" />
         <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_35%,#fffaf0,#fff4dc_45%,#f0d9a8_100%)] shadow-[0_0_60px_rgba(255,244,220,0.55)]" />
         <div className="absolute left-[30%] top-[55%] h-3 w-3 bg-[#ecd3a0] opacity-70" />
@@ -121,8 +111,7 @@ export function NightSky({ full = true, skyline: showSkyline = true, camera }: P
       ))}
 
       {showSkyline && (
-        <motion.div
-          style={{ scale: cityScale, y: cityY, transformOrigin: "50% 92%" }}
+        <div
           className={`skyline-painting absolute inset-x-0 bottom-0 ${showSkyline === "dim" ? "is-dim h-[34vh] min-h-[200px] opacity-45" : "h-[56vh] min-h-[300px]"}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -134,7 +123,7 @@ export function NightSky({ full = true, skyline: showSkyline = true, camera }: P
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_22%_30%,rgba(12,13,46,0.55),transparent_60%)]" />
           {/* melt the bottom edge into the section below */}
           <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-[#100f2e]" />
-        </motion.div>
+        </div>
       )}
 
       {/* fireflies */}

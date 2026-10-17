@@ -96,15 +96,6 @@ export function deleteChapter(id: string) {
   );
 }
 
-export function clearChaptersAndSessions() {
-  try {
-    localStorage.removeItem(SESSIONS);
-    localStorage.removeItem(CHAPTERS);
-  } catch {
-    /* ignore */
-  }
-}
-
 /** Total length of the elder's real voice in a set of turns, like "3 min 20 s". */
 export function voiceLength(turns: Turn[]) {
   const ms = turns.filter((t) => t.role === "elder").reduce((sum, t) => sum + (t.durationMs ?? 0), 0);
