@@ -60,9 +60,9 @@ All fonts are self-hosted with @fontsource-variable. Sentence case everywhere. N
 ## 5. Layout
 
 - Max widths: 72rem marketing, 72rem dashboard, 48rem forms.
-- Home: hero at sunset with Dadi's book (headline left, the book right) / how it works (three cards) / the quiet line / story shelf (horizontal snap scroll) / promise / closing card under lanterns / footer.
+- Home: hero at sunset with Dadi's book (headline left, the book right) / the night painting / how it works (three cards) / the quiet line / story shelf (horizontal snap scroll) / promise / closing card under lanterns / footer.
 - Dadi's book (`components/home/Diary.tsx`): write to it and it writes back. The question writes itself in ink, sinks into the page, and her answer writes back in Nastaliq and handwriting (Caveat) while her painting soaks up through the opposite page; Hudhud adds a margin note. It runs on its own clock when it comes into view or when someone writes, never on scroll. Answers are a labelled sample. Screen readers get the plain text; reduced motion shows the finished pages at once.
-- Home scroll rule: **the page scrolls normally**. Nothing pins, scrubs, dims or fades in with scrolling, so everything is readable and findable (including with Ctrl+F) at all times. The only animation is inside the book.
+- Home scroll rule: **the page scrolls normally; scenes follow it**. Nothing pins or hijacks the wheel. Sections animate in step with the scroll position using CSS scroll-driven animations (`sd-` classes in `globals.css`): the hero drifts away and the book tips back, the ajrak frame unrolls and the painting pans, the step cards swing up, the quiet line lights word by word, the shelf fans in, lanterns rise at different depths, and a thin glow along the top shows progress. Only `transform`, `opacity` and a short focus blur are animated. Reduced motion turns all of it off; browsers without view timelines (Firefox) get a one-time lift (`Reveal`) instead. An `overflow: hidden` wrapper freezes a view timeline, so animated sections clip with `overflow: clip`.
 - App: dark indigo backdrop with blurred lantern pools and an ajrak stripe at the top. Header (`AppHeader`) = wordmark left, sound and account right.
 - Elder screens (/record): center aligned, one question at a time, giant touch targets.
 

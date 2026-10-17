@@ -8,13 +8,16 @@ import { useEffect, useRef, type ReactNode } from "react";
  * with prefers-reduced-motion simply sees the content (the CSS skips it).
  * The hiding class is added by script, and only below the fold, so without
  * JavaScript (or for anything already on screen) the content is just there.
+ * Browsers with scroll-driven animations skip it: the sections animate
+ * themselves with the scroll (the `sd-` classes in globals.css).
  */
 export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || el.getBoundingClientRect().top < window.innerHeight) return;
+    if (!el || CSS.supports("(animation-timeline: view()) and (animation-range: entry)")) return;
+    if (el.getBoundingClientRect().top < window.innerHeight) return;
     el.classList.add("reveal");
     const io = new IntersectionObserver(
       (entries) => {

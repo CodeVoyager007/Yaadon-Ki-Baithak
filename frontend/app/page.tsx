@@ -18,10 +18,11 @@ import { StoryShelf } from "@/components/home/StoryShelf";
  */
 export default function HomePage() {
   return (
-    <div className="relative min-h-screen bg-[#0a0a24]">
+    <div className="relative min-h-screen overflow-x-clip bg-[#0a0a24]">
       <a href="#main" className="sr-only z-[60] rounded-xl bg-lantern px-4 py-2 font-bold text-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         Skip to content
       </a>
+      <div aria-hidden className="sd-progress pointer-events-none fixed inset-x-0 top-0 z-[60] h-[3px] bg-gradient-to-r from-terracotta via-lantern to-lantern-soft shadow-[0_0_12px_rgba(255,214,102,0.8)]" />
       <EveningSky />
       <IntroFilm />
       <SiteNav />

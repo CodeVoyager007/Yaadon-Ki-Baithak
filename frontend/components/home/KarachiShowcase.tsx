@@ -10,7 +10,7 @@ import { AJRAK_BORDER } from "@/components/app/AppBackdrop";
  */
 export function KarachiShowcase() {
   return (
-    <section className="relative isolate overflow-hidden px-5 py-20" aria-label="Night painting showcase">
+    <section className="relative isolate overflow-clip px-5 py-20" aria-label="Night painting showcase">
       {/* Sky lanterns floating on the left side */}
       <SkyLantern delay={0.2} duration={13} className="bottom-[10%] left-[3vw]" />
       <SkyLantern delay={2.5} duration={12} className="bottom-[4%] left-[12vw]" />
@@ -22,7 +22,7 @@ export function KarachiShowcase() {
       <SkyLantern delay={6.2} duration={11} className="bottom-[18%] right-[8vw]" />
 
       <div className="relative z-10 mx-auto max-w-5xl">
-        <div className="mb-8 text-center">
+        <div className="sd-focus mb-8 text-center">
           <p className="font-urdu text-2xl leading-[2] text-lantern-soft sm:text-3xl" dir="rtl" lang="ur">
             کراچی سے ہر گھر تک — جہاں کہانیاں جاگتی ہیں
           </p>
@@ -36,13 +36,13 @@ export function KarachiShowcase() {
         </div>
 
         {/* Framed opengraph painting */}
-        <div className="overflow-hidden rounded-[32px] p-[8px] shadow-[0_30px_70px_-20px_rgba(5,5,30,0.9)]" style={AJRAK_BORDER}>
-          <div className="relative aspect-[1200/630] w-full overflow-hidden rounded-[25px] bg-[#12133a]">
+        <div className="sd-unroll overflow-clip rounded-[32px] p-[8px] shadow-[0_30px_70px_-20px_rgba(5,5,30,0.9)]" style={AJRAK_BORDER}>
+          <div className="relative aspect-[1200/630] w-full overflow-clip rounded-[25px] bg-[#12133a]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={ogImage.src}
               alt="Mazar-e-Quaid and old Karachi rooftops at night, painted for Baithak"
-              className="h-full w-full object-cover transition duration-700 hover:scale-105"
+              className="sd-kenburns h-full w-full object-cover"
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-raat/90 via-raat/20 to-transparent pointer-events-none" />

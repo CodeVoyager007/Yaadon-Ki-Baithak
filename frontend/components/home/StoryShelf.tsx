@@ -27,9 +27,9 @@ function StoryShelfClassic() {
   };
 
   return (
-    <section className="relative scroll-mt-24 py-24">
+    <section className="sd-shelf relative scroll-mt-24 py-24">
       <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-6 px-5">
-        <div className="max-w-xl">
+        <div className="sd-focus max-w-xl">
           <h2 className="font-display text-4xl font-semibold leading-tight text-moon sm:text-5xl">{HEADING}</h2>
           <p className="mt-4 text-moon/80">{BLURB}</p>
         </div>
@@ -50,8 +50,10 @@ function StoryShelfClassic() {
         tabIndex={0}
         aria-label="Sample chapters"
       >
-        {SAMPLE_CHAPTERS.map((c) => (
-          <ChapterCard key={c.slug} chapter={c} className="w-[300px] shrink-0 sm:w-[340px]" />
+        {SAMPLE_CHAPTERS.map((c, i) => (
+          <div key={c.slug} className="sd-fan shrink-0" style={{ "--i": i, "--tilt": i % 2 ? 5 : -5 } as React.CSSProperties}>
+            <ChapterCard chapter={c} className="w-[300px] sm:w-[340px]" />
+          </div>
         ))}
       </div>
     </section>

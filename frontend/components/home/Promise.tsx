@@ -28,7 +28,7 @@ export function Promise() {
   return (
     <section id="promise" className="relative scroll-mt-24 px-5 py-28">
       <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[1fr_1fr] lg:items-center">
-        <div>
+        <div className="sd-focus">
           <p className="font-urdu mb-3 text-2xl leading-[2] text-lantern-soft" dir="rtl" lang="ur" style={{ textAlign: "left" }}>
             یادیں امانت ہیں
           </p>
@@ -42,8 +42,8 @@ export function Promise() {
         </div>
 
         <ul className="glass-night divide-y divide-moon/15 rounded-[28px] px-7 py-2">
-          {PROMISES.map(({ icon: Icon, title, body }) => (
-            <li key={title} className="flex gap-5 py-6">
+          {PROMISES.map(({ icon: Icon, title, body }, i) => (
+            <li key={title} className="sd-slide flex gap-5 py-6" style={{ "--i": i } as React.CSSProperties}>
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-lantern/15 text-lantern-soft">
                 <Icon size={22} aria-hidden />
               </span>
@@ -56,20 +56,22 @@ export function Promise() {
         </ul>
       </div>
 
-      <div className="relative mx-auto mt-28 flex max-w-6xl flex-col items-center gap-6 overflow-hidden rounded-[40px] border border-moon/15 px-6 pb-20 pt-6 text-center shadow-[0_40px_90px_-40px_rgba(2,2,18,0.95)]">
+      <div className="sd-cta relative mx-auto mt-28 flex max-w-6xl flex-col items-center gap-6 overflow-clip rounded-[40px] border border-moon/15 px-6 pb-20 pt-6 text-center shadow-[0_40px_90px_-40px_rgba(2,2,18,0.95)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={river.src} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+        <img src={river.src} alt="" loading="lazy" className="sd-drift absolute inset-0 h-full w-full object-cover opacity-60" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0b0b26] via-[#0b0b26]/75 to-[#0b0b26]/35" />
-        {/* a string of lit lanterns over the last call */}
+        {/* a string of lit lanterns over the last call; they rise at different speeds as it scrolls in */}
         <div aria-hidden className="relative flex w-full max-w-3xl justify-between px-2">
           {[0, 1, 2, 3, 4].map((i) => (
-            <span key={i} className={`relative ${i % 2 ? "mt-6" : ""}`}>
+            <span key={i} className={`sd-rise relative ${i % 2 ? "mt-6" : ""}`} style={{ "--depth": [140, 220, 90, 200, 160][i] } as React.CSSProperties}>
               <span className="absolute left-1/2 top-[62%] h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-lantern/40 blur-2xl" />
               <Lantern size={i === 2 ? 110 : 84} className="relative" />
             </span>
           ))}
         </div>
-        <Birdy mood="happy" size={110} className="relative" />
+        <div className="sd-pop relative">
+          <Birdy mood="happy" size={110} />
+        </div>
         <p className="font-urdu relative -mb-4 text-3xl leading-[2] text-lantern-soft" dir="rtl" lang="ur">
           آج رات ایک کہانی سے شروع کریں
         </p>
