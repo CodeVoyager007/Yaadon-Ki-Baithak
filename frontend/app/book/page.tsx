@@ -27,10 +27,14 @@ export default function BookPage() {
     (async () => {
       // Drop a book saved by a different account on this device (shared family phone).
       if (hasSupabase) {
-        const {
-          data: { user },
-        } = await supabaseBrowser().auth.getUser();
-        if (user) claimBook(user.id);
+        try {
+          const {
+            data: { user },
+          } = await supabaseBrowser().auth.getUser();
+          if (user) claimBook(user.id);
+        } catch {
+          /* ignore auth check failure */
+        }
       }
       if (cancelled) return;
       const b = loadBook();

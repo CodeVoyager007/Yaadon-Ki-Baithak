@@ -37,7 +37,15 @@ export default function OnboardingPage() {
       return;
     }
     setFinishing(true);
-    const ownerId = hasSupabase ? (await supabaseBrowser().auth.getUser()).data.user?.id : undefined;
+    let ownerId: string | undefined;
+    if (hasSupabase) {
+      try {
+        const { data } = await supabaseBrowser().auth.getUser();
+        ownerId = data.user?.id;
+      } catch {
+        /* ignore auth failure in onboarding */
+      }
+    }
     saveBook({
       ownerId,
       familyName: familyName.trim().slice(0, 80),

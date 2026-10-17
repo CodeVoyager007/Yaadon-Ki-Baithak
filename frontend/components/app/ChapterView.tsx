@@ -31,7 +31,10 @@ export function ChapterView({ stored, elder }: { stored: StoredChapter; elder: E
   const showUr = lang === "ur" || (lang === "both" && (ur.length > 0 || en.length === 0));
   const showEn = lang === "en" || (lang === "both" && en.length > 0);
   const img = stored.imageUrl ?? SCENE_IMAGES[stored.scene].src;
-  const date = new Date(stored.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const parsedDate = new Date(stored.createdAt);
+  const date = !isNaN(parsedDate.getTime())
+    ? parsedDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : "recently";
 
   return (
     <article>

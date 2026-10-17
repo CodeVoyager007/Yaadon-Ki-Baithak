@@ -21,13 +21,16 @@ from .http_client import client
 async def user_id_for(token: str) -> Optional[str]:
     """Ask Supabase Auth who this access token belongs to. None for a bad or expired token."""
     s = settings()
-    res = await client().get(
-        f"{s.supabase_url}/auth/v1/user",
-        headers={"apikey": s.supabase_anon_key, "Authorization": f"Bearer {token}"},
-    )
-    if res.status_code != 200:
+    try:
+        res = await client().get(
+            f"{s.supabase_url}/auth/v1/user",
+            headers={"apikey": s.supabase_anon_key, "Authorization": f"Bearer {token}"},
+        )
+        if res.status_code != 200:
+            return None
+        return res.json().get("id")
+    except Exception:
         return None
-    return res.json().get("id")
 
 
 @dataclass(frozen=True)
@@ -59,15 +62,21 @@ class Supa:
             raise RuntimeError(f"Supabase upload answered {res.status_code}")
 
     async def signed_url(self, bucket: str, path: str, seconds: int) -> Optional[str]:
-        res = await client().post(
-            f"{settings().supabase_url}/storage/v1/object/sign/{bucket}/{quote(path)}",
-            json={"expiresIn": seconds},
-            headers=self._headers(),
-        )
-        if res.status_code != 200:
+        try:
+            res = await client().post(
+                f"{settings().supabase_url}/storage/v1/object/sign/{bucket}/{quote(path)}",
+                json={"expiresIn": seconds},
+                headers=self._headers(),
+            )
+            if res.status_code != 200:
+                return None
+            signed = res.json().get("signedURL") or res.json().get("signedUrl")
+            if not signed:
+                return None
+            prefix = "" if signed.startswith("/") else "/"
+            return f"{settings().supabase_url}/storage/v1{prefix}{signed}"
+        except Exception:
             return None
-        signed = res.json().get("signedURL") or res.json().get("signedUrl")
-        return f"{settings().supabase_url}/storage/v1{signed}" if signed else None
 
 
 def as_user(token: str) -> Supa:
