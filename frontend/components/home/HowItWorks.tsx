@@ -20,7 +20,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how" aria-labelledby="how-title" className="relative scroll-mt-24 px-5 py-24">
+    <section id="how" aria-labelledby="how-title" className="relative scroll-mt-24 px-5 py-12 sm:py-14">
       <div className="mx-auto max-w-6xl">
         <div className="sd-focus">
           <p className="font-urdu text-2xl leading-[2] text-lantern-soft" lang="ur" dir="rtl" style={{ textAlign: "left" }}>
@@ -30,7 +30,7 @@ export function HowItWorks() {
             One evening, one cup of chai, one chapter.
           </h2>
         </div>
-        <ol className="mt-12 grid gap-5 md:grid-cols-3">
+        <ol className="mt-10 grid gap-5 md:grid-cols-3">
           {STEPS.map(({ icon: Icon, title, body }, i) => (
             <li key={title} className="sd-card glass-night rounded-[26px] p-6" style={{ "--i": i } as React.CSSProperties}>
               <div className="flex items-center gap-3">

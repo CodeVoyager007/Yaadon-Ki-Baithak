@@ -26,7 +26,7 @@ const PROMISES = [
 /** The promise to families, then the last call under the lanterns. */
 export function Promise() {
   return (
-    <section id="promise" className="relative scroll-mt-24 px-5 py-28">
+    <section id="promise" className="relative scroll-mt-24 px-5 pb-20 pt-12 sm:pt-14">
       <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[1fr_1fr] lg:items-center">
         <div className="sd-focus">
           <p className="font-urdu mb-3 text-2xl leading-[2] text-lantern-soft" dir="rtl" lang="ur" style={{ textAlign: "left" }}>
@@ -56,10 +56,10 @@ export function Promise() {
         </ul>
       </div>
 
-      <div className="sd-cta relative mx-auto mt-28 flex max-w-6xl flex-col items-center gap-6 overflow-clip rounded-[40px] border border-moon/15 px-6 pb-20 pt-6 text-center shadow-[0_40px_90px_-40px_rgba(2,2,18,0.95)]">
+      <div className="sd-cta relative mx-auto mt-16 flex max-w-6xl flex-col items-center gap-6 overflow-clip rounded-[40px] border border-moon/15 px-6 pb-20 pt-6 text-center shadow-[0_40px_90px_-40px_rgba(2,2,18,0.95)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={river.src} alt="" loading="lazy" className="sd-drift absolute inset-0 h-full w-full object-cover opacity-60" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0b0b26] via-[#0b0b26]/75 to-[#0b0b26]/35" />
+        <img src={river.src} alt="" loading="lazy" className="sd-drift absolute inset-0 h-full w-full object-cover opacity-80" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0b0b26] via-[#0b0b26]/60 to-[#0b0b26]/20" />
         {/* a string of lit lanterns over the last call; they rise at different speeds as it scrolls in */}
         <div aria-hidden className="relative flex w-full max-w-3xl justify-between px-2">
           {[0, 1, 2, 3, 4].map((i) => (

@@ -213,6 +213,8 @@ body {
  * a view timeline, so the animated sections clip with `overflow: clip`.
  */
 .sd-progress { display: none; }
+/* No rubber-band past the ends of the home page: it would show a flat strip instead of the sky. */
+html:has(.home-sky) { overscroll-behavior-y: none; background: #0a0a24; }
 @media (prefers-reduced-motion: no-preference) {
   @supports ((animation-timeline: view()) and (animation-range: entry)) {
     @keyframes sd-grow { from { transform: scaleX(0); } }
@@ -220,16 +222,16 @@ body {
     @keyframes sd-drift-out { to { opacity: 0; transform: translateY(-90px); } }
     @keyframes sd-tip-back { to { opacity: 0.35; transform: perspective(1200px) rotateX(22deg) translateY(-50px) scale(0.92); } }
     @keyframes sd-sink { to { transform: translateY(22%); } }
-    @keyframes sd-focus { from { opacity: 0; filter: blur(14px); transform: translateY(36px) scale(0.97); } }
+    @keyframes sd-focus { from { opacity: 0.35; filter: blur(6px); transform: translateY(28px) scale(0.98); } }
     @keyframes sd-unroll { from { clip-path: inset(8% 34% round 32px); transform: scale(0.94); } to { clip-path: inset(0 round 32px); } }
     @keyframes sd-kenburns { from { transform: scale(1.28) translateY(-5%); } to { transform: scale(1.04) translateY(4%); } }
-    @keyframes sd-card { from { opacity: 0; transform: perspective(1000px) translateY(110px) rotateX(38deg) scale(0.92); } }
-    @keyframes sd-word { from { opacity: 0.12; } }
-    @keyframes sd-fan { from { opacity: 0; transform: translateY(90px) rotate(calc(var(--tilt, 0) * 1deg)) scale(0.88); } }
-    @keyframes sd-slide { from { opacity: 0; transform: translateX(70px); } }
-    @keyframes sd-rise { from { transform: translateY(calc(var(--depth, 100) * 1px)); opacity: 0.2; } }
+    @keyframes sd-card { from { opacity: 0.35; transform: perspective(1000px) translateY(110px) rotateX(38deg) scale(0.92); } }
+    @keyframes sd-word { from { opacity: 0.3; } }
+    @keyframes sd-fan { from { opacity: 0.35; transform: translateY(90px) rotate(calc(var(--tilt, 0) * 1deg)) scale(0.88); } }
+    @keyframes sd-slide { from { opacity: 0.35; transform: translateX(60px); } }
+    @keyframes sd-rise { from { transform: translateY(calc(var(--depth, 100) * 1px)); opacity: 0.5; } }
     @keyframes sd-drift { from { transform: translateY(-10%) scale(1.2); } to { transform: translateY(10%) scale(1.2); } }
-    @keyframes sd-pop { from { opacity: 0; transform: scale(0.6) translateY(30px); } }
+    @keyframes sd-pop { from { opacity: 0.4; transform: scale(0.7) translateY(24px); } }
 
     /* a thin lantern glow along the top: how far through the evening you are */
     .sd-progress { display: block; transform-origin: 0 50%; animation: sd-grow linear both; animation-timeline: scroll(root); }
@@ -242,29 +244,29 @@ body {
     .sd-skyline { animation: sd-sink linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
 
     /* headings come into focus */
-    .sd-focus { animation: sd-focus linear both; animation-timeline: view(); animation-range: entry 10% cover 35%; }
+    .sd-focus { animation: sd-focus linear both; animation-timeline: view(); animation-range: entry 0% entry 80%; }
 
     /* the night painting: the ajrak frame unrolls, then the camera slowly pans the painting */
-    .sd-unroll { animation: sd-unroll linear both; animation-timeline: view(); animation-range: entry 0% cover 40%; }
+    .sd-unroll { animation: sd-unroll linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }
     .sd-kenburns { animation: sd-kenburns linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
 
     /* how it works: cards swing up off the table, one after another */
-    .sd-card { transform-origin: 50% 100%; animation: sd-card linear both; animation-timeline: view(); animation-range: entry calc(var(--i, 0) * 14%) cover calc(38% + var(--i, 0) * 6%); }
+    .sd-card { transform-origin: 50% 100%; animation: sd-card linear both; animation-timeline: view(); animation-range: entry calc(var(--i, 0) * 10%) entry calc(75% + var(--i, 0) * 10%); }
 
     /* the quiet line lights up word by word, like ink appearing */
     .sd-words { view-timeline: --quiet; }
-    .sd-word { animation: sd-word linear both; animation-timeline: --quiet; animation-range: cover calc(22% + var(--i, 0) * 3%) cover calc(27% + var(--i, 0) * 3%); }
+    .sd-word { animation: sd-word linear both; animation-timeline: --quiet; animation-range: cover calc(15% + var(--i, 0) * 3%) cover calc(20% + var(--i, 0) * 3%); }
 
     /* the story shelf fans its books in */
     .sd-shelf { view-timeline: --shelf; }
-    .sd-fan { animation: sd-fan linear both; animation-timeline: --shelf; animation-range: entry calc(10% + var(--i, 0) * 7%) cover calc(40% + var(--i, 0) * 4%); }
+    .sd-fan { animation: sd-fan linear both; animation-timeline: --shelf; animation-range: entry calc(var(--i, 0) * 6%) cover calc(25% + var(--i, 0) * 3%); }
 
     /* the promise: each line slides in; under the river, lanterns rise at different speeds */
-    .sd-slide { animation: sd-slide linear both; animation-timeline: view(); animation-range: entry calc(var(--i, 0) * 12%) cover 35%; }
+    .sd-slide { animation: sd-slide linear both; animation-timeline: view(); animation-range: entry calc(var(--i, 0) * 10%) entry calc(70% + var(--i, 0) * 10%); }
     .sd-cta { view-timeline: --cta; }
-    .sd-rise { animation: sd-rise linear both; animation-timeline: --cta; animation-range: entry 0% cover 50%; }
+    .sd-rise { animation: sd-rise linear both; animation-timeline: --cta; animation-range: entry 0% cover 35%; }
     .sd-drift { animation: sd-drift linear both; animation-timeline: --cta; animation-range: cover 0% cover 100%; }
-    .sd-pop { animation: sd-pop linear both; animation-timeline: --cta; animation-range: entry 40% cover 45%; }
+    .sd-pop { animation: sd-pop linear both; animation-timeline: --cta; animation-range: entry 20% cover 35%; }
   }
 }
 

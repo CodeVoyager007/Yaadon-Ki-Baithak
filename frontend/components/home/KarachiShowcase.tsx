@@ -10,7 +10,7 @@ import { AJRAK_BORDER } from "@/components/app/AppBackdrop";
  */
 export function KarachiShowcase() {
   return (
-    <section className="relative isolate overflow-clip px-5 py-20" aria-label="Night painting showcase">
+    <section className="relative isolate overflow-clip px-5 py-10 sm:py-12" aria-label="Night painting showcase">
       {/* Sky lanterns floating on the left side */}
       <SkyLantern delay={0.2} duration={13} className="bottom-[10%] left-[3vw]" />
       <SkyLantern delay={2.5} duration={12} className="bottom-[4%] left-[12vw]" />

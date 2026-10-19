@@ -3,7 +3,7 @@ const QUESTION = "When she’s gone, who will tell this story?";
 /** The question at the heart of it. As it scrolls through, it lights up word by word. */
 export function QuietLine() {
   return (
-    <section className="sd-words relative px-5 py-24">
+    <section className="sd-words relative px-5 py-12 sm:py-14">
       <div className="mx-auto max-w-4xl text-center">
         <p className="sd-focus font-urdu text-2xl leading-[2] text-lantern-soft sm:text-3xl" lang="ur" dir="rtl">
           جب وہ نہ رہیں، تو یہ کہانی کون سنائے گا؟

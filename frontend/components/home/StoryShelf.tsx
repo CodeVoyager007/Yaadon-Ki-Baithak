@@ -27,7 +27,7 @@ function StoryShelfClassic() {
   };
 
   return (
-    <section className="sd-shelf relative scroll-mt-24 py-24">
+    <section className="sd-shelf relative scroll-mt-24 py-10 sm:py-12">
       <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-6 px-5">
         <div className="sd-focus max-w-xl">
           <h2 className="font-display text-4xl font-semibold leading-tight text-moon sm:text-5xl">{HEADING}</h2>
@@ -45,7 +45,7 @@ function StoryShelfClassic() {
 
       <div
         ref={shelf}
-        className="shelf mt-12 flex gap-6 overflow-x-auto pb-6"
+        className="shelf mt-10 flex gap-6 overflow-x-auto pb-4"
         style={{ paddingInline: "max(1.25rem, calc((100vw - 72rem) / 2 + 1.25rem))", scrollPaddingInline: "max(1.25rem, calc((100vw - 72rem) / 2 + 1.25rem))" }}
         tabIndex={0}
         aria-label="Sample chapters"
