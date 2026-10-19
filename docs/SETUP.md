@@ -2,7 +2,7 @@
 
 An AI agent that interviews grandparents by voice in Urdu and turns their memories into an illustrated family storybook, with their real voice beside every chapter. Built for the NYLP AI Hackathon 2026.
 
-Hudhud sits with an elder, asks one gentle question at a time (Urdu + English, spoken aloud), records the answer in their **own voice**, then three agents take over: the interviewer picks the next question, the story writer writes a bilingual chapter **only from what was said**, and the painter illustrates it in one consistent storybook style. Every chapter keeps the real recordings beside the text — that is the proof nothing was invented.
+Hudhud sits with an elder, asks one gentle question at a time (Urdu + English, spoken aloud), records the answer in their **own voice**, then a line of agents makes the book: the story writer edits it into a bilingual story **only from what was said**, the page setter lays out the pages, the art director plans a picture for each page, and the illustrator paints them in one consistent storybook style. Every chapter keeps the real recordings beside the text — that is the proof nothing was invented.
 
 ## Run it
 

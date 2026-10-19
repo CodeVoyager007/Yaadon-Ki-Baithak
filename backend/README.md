@@ -18,9 +18,11 @@ so this folder can be pushed to a Space as-is (see §6).
 backend/
   agents/            the AI team: no keys, no network, no web framework
     interviewer.py     Hudhud: picks the next move every turn
-    story_writer.py    turns a session into a bilingual chapter, never invents facts
-    illustrator.py     builds the FLUX.1 schnell request from the writer's scene
-    orchestrator.py    hand-off and pipeline: Hudhud → writer → illustrator, with a trace
+    story_writer.py    the editor: turns a session into the story (Urdu + English paragraphs), never invents facts
+    page_setter.py     lays the story out as pages (plain code); also the word-for-word draft
+    art_director.py    one painting brief per page, on the light model; theme scenes as fallback
+    illustrator.py     builds the FLUX.1 schnell request from each brief
+    orchestrator.py    hand-off and the book line: writer → page setter → art director → illustrator
     guardrails.py      grief / tiredness / private-info cues (EN, Roman Urdu, Urdu), fencing
     types.py           pydantic shapes (camelCase on the wire)
   app/               FastAPI around the agents
@@ -71,15 +73,18 @@ answer ─▶ │ Interviewer: signals → model → rule checks →   │─▶
           │              retry once with the reason        │
           └──────────────────────────┬──────────────────────┘
                                      │ wrap_up  →  handoff: "story_writer"
-          ┌──────────────── POST /api/chapter ──────────────▼┐
-          │ Orchestrator: story writer ─(scene)─▶ illustrator │─▶ { chapter, imageUrl, trace }
-          └───────────────────────────────────────────────────┘
+          ┌──────────────── POST /api/chapter ───────────────▼──────────────────────────┐
+          │ story writer ─▶ page setter ─▶ art director ─▶ illustrator (pages in parallel) │─▶ { chapter, draft, pageImages, trace }
+          └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 The orchestrator is plain code, not another LLM. Each step has only one correct
 next step, so a model there would just add latency and another way to fail. Its
-job is the hand-off, passing the writer's scene to the illustrator, and failure
-policy: no chapter → honest 502, but a failed painting still keeps the chapter.
+job is the hand-off and the failure policy, where every step has a fallback: no
+edited story → the page setter lays out the elder's own words (`draft: true`);
+no painting briefs → the theme's calm scenes; a failed painting → that page keeps
+a themed picture. Only a session with no words at all is a 502. The steps run in
+order because each needs the one before; the pages are painted side by side.
 It also records a trace of every step (agent, outcome, reason, ms) for an
 "agent thinking" panel in the demo.
 
@@ -96,13 +101,18 @@ actually did:
   two questions at once, or an over-long question are rejected and retried once.
   At 8 answers it wraps up with a fixed thank-you line and doesn't call the
   model. Two failures → `None`; it never writes a question itself.
-- **Story writer.** Writes an illustrated storybook: a title and 2 to 8 pages, each a
-  few sentences in Urdu and English with the lines it came from and its own scene
-  (a plain body is cut into pages if the model gives none). First person, the elder's own phrases, Urdu plus a faithful
+- **Story writer (editor).** Writes the story itself: a title and paragraphs, one moment each,
+  in Urdu and English with the lines they came from. It edits like a loving editor (order,
+  joins, no filler) in a warm storytelling tone. First person, the elder's own phrases, Urdu plus a faithful
   English version, `[unclear]` instead of guesses, 250–500 words only if the
   material is there. A pull quote not found word for word in an elder turn is
   re-pointed to the turn that said it, or dropped. A year never said (Western
-  or Urdu digits) is dropped. Source turns must exist. Returns a `scene`.
+  or Urdu digits) is dropped. Source turns must exist.
+- **Page setter.** Plain code. About 75 words a page at whole sentences (Urdu ۔ ؟ and English
+  marks; run-on transcripts are cut by length), Urdu and English split at the same points,
+  4 to 8 pages. Also builds the word-for-word draft when the writer can't run.
+- **Art director.** Reads the pages and writes one calm painting brief per page plus the
+  cover, on the light model (its own quota). The painter only ever receives these briefs.
 - **Illustrator.** Paints every page (three at a time, each with its own seed in
   the family's style); a page that fails keeps a themed picture and the book is
   never lost. Fixed gouache style, per-family seed. Graphic scenes are

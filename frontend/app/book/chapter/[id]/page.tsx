@@ -11,7 +11,7 @@ import { BirdySays } from "@/components/app/SpeechBubble";
 import { BehindTheStory } from "@/components/book/BehindTheStory";
 import { StoryBook } from "@/components/book/StoryBook";
 import { PixelLantern } from "@/components/effects/PixelLantern";
-import { illustrateOnly } from "@/lib/api";
+import { illustrateOnly, writeAndIllustrate } from "@/lib/api";
 import { deleteClips } from "@/lib/audio-store";
 import { bookPages } from "@/lib/book-pages";
 import { elderLabel, getElder, loadBook, type Elder } from "@/lib/book-store";
@@ -28,6 +28,7 @@ export default function ChapterPage() {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [painting, setPainting] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
   const [paintNote, setPaintNote] = useState<string | null>(null);
 
   /** Paints every page again. A page whose new painting fails keeps the one it had. */
@@ -40,7 +41,7 @@ export default function ChapterPage() {
       // Older books get their pages written down first, so each one can be painted.
       const pages: Page[] = bookPages(stored).map(({ ur, en, scene, sourceTurns }) => ({ ur, en, scene, sourceTurns }));
       const chapter = { ...stored.chapter, pages };
-      const res = await illustrateOnly(chapter, Math.floor(Math.random() * 1000000));
+      const res = await illustrateOnly(chapter, Math.floor(Math.random() * 1000000), stored.theme);
       const fresh = await Promise.all((res.pageImages ?? []).map((u) => keepImage(u)));
       if (fresh.some(Boolean)) {
         const pageImages = pages.map((_, i) => fresh[i] ?? stored.pageImages?.[i] ?? null);
@@ -56,6 +57,42 @@ export default function ChapterPage() {
       setPaintNote(resting);
     } finally {
       setPainting(false);
+    }
+  }
+
+  /** A draft goes back to the story writer (once its quota is back): edited story, new pages, new paintings. */
+  async function handleRewrite() {
+    if (!stored || painting) return;
+    const teller = getElder(stored.elderId);
+    const book = loadBook();
+    if (!teller || !book) return;
+    setPainting(true);
+    setRewriting(true);
+    setPaintNote(null);
+    try {
+      const seed = book.familyName.split("").reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 100000, 7);
+      const written = await writeAndIllustrate(teller, stored.theme, stored.turns, seed);
+      if (written.source !== "ai" || written.draft) {
+        setPaintNote("The story writer is still resting. Your draft is safe; try again in a little while.");
+        return;
+      }
+      const fresh = await Promise.all(written.pageImages.map((u) => keepImage(u)));
+      const pageImages = fresh.map((u, i) => u ?? stored.pageImages?.[i] ?? null);
+      const next: StoredChapter = {
+        ...stored,
+        chapter: written.chapter,
+        pageImages,
+        imageUrl: (await keepImage(written.imageUrl)) ?? pageImages.find(Boolean) ?? stored.imageUrl,
+        draft: false,
+      };
+      saveChapter(next);
+      setStored(next);
+      setPaintNote(`The story writer finished ${elderLabel(teller)}'s story: ${written.chapter.pages?.length ?? 0} pages, freshly painted.`);
+    } catch {
+      setPaintNote("The story writer is still resting. Your draft is safe; try again in a little while.");
+    } finally {
+      setPainting(false);
+      setRewriting(false);
     }
   }
 
@@ -158,10 +195,19 @@ export default function ChapterPage() {
           </div>
         )}
 
+        {stored.draft && !painting && !editing && (
+          <div className="glass-night mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-4 text-sm text-moon/90">
+            <p>This is a draft: the story exactly as told. When the story writer is free, it can edit it into a proper storybook.</p>
+            <button type="button" onClick={handleRewrite} className="btn-lantern pixel-corners inline-flex h-11 items-center gap-2 px-5 font-extrabold">
+              <Sparkles size={16} /> Write it properly
+            </button>
+          </div>
+        )}
+
         {painting && (
           <div className="glass-night mb-6 flex items-center justify-center gap-3 rounded-2xl p-4 text-moon/90">
             <PixelLantern size={28} />
-            <span className="font-display">Hudhud is painting every page again...</span>
+            <span className="font-display">{rewriting ? "The story writer, page setter, art director and illustrator are at work..." : "Hudhud is painting every page again..."}</span>
           </div>
         )}
 

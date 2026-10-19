@@ -110,9 +110,9 @@ def parse_json(raw: str) -> Any:
         raise ModelReplyError(str(err)) from err
 
 
-async def generate_json(system: str, user: str, temperature: float = 0.7) -> Any:
+async def _json(models: list[str], system: str, user: str, temperature: float) -> Any:
     reply = await _generate_any(
-        _text_models(settings().gemini_model),
+        models,
         {
             "contents": [{"role": "user", "parts": [{"text": user}]}],
             "systemInstruction": {"parts": [{"text": system}]},
@@ -125,11 +125,21 @@ async def generate_json(system: str, user: str, temperature: float = 0.7) -> Any
     return parse_json(text)
 
 
+async def generate_json(system: str, user: str, temperature: float = 0.7) -> Any:
+    """The JsonModel for the main jobs (interviewer, story writer)."""
+    return await _json(_text_models(settings().gemini_model), system, user, temperature)
+
+
+async def generate_json_light(system: str, user: str, temperature: float = 0.7) -> Any:
+    """The JsonModel for small jobs (painting briefs): the light model first, then the rest of the chain."""
+    return await _json(_text_models(settings().gemini_light_model), system, user, temperature)
+
+
 async def transcribe(audio: bytes, mime_type: str, lang: str) -> str:
     """Verbatim transcript of one recording (an answer, or a whole story) in the elder's own voice."""
     spoken = "Urdu" if lang == "ur" else "English"
     reply = await _generate_any(
-        _text_models(settings().gemini_transcribe_model),
+        _text_models(settings().gemini_light_model),
         {
             "contents": [
                 {

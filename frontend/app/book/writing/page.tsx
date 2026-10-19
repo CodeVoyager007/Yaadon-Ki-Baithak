@@ -16,7 +16,7 @@ import { elderLabel, getElder, loadBook, newId } from "@/lib/book-store";
 import { getChapterForSession, getSession, saveChapter, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { THEMES } from "@/lib/themes";
 
-const AGENT_LABEL = { story_writer: "Story writer", illustrator: "Illustrator" } as const;
+const AGENT_LABEL = { story_writer: "Story writer", page_setter: "Page setter", art_director: "Art director", illustrator: "Illustrator" } as const;
 
 type StepState = "waiting" | "working" | "done";
 type Step = { label: string; state: StepState };
@@ -66,8 +66,8 @@ function Writing() {
     setWho(name);
     const labels = [
       `Listening back to ${name}`,
-      `Writing the storybook, using only ${elder.name}'s words`,
-      "Painting every page",
+      `Editing the story and setting its pages, using only ${elder.name}'s words`,
+      "Planning a picture for every page and painting them side by side",
       "Binding it into your family's bookshelf",
     ];
     setSteps(labels.map((label) => ({ label, state: "waiting" })));
@@ -84,20 +84,20 @@ function Writing() {
       if (heard < answers.length) say(`${answers.length - heard} answer${answers.length - heard === 1 ? "" : "s"} had no transcript yet. The voice is still saved.`);
       mark(0, "done");
 
-      // One call: the backend's orchestrator hands the session to the story
-      // writer, then passes the writer's scene to the illustrator.
+      // One call: the backend's orchestrator runs the book line (story writer,
+      // page setter, art director, illustrator) and reports each step.
       mark(1, "working");
       const seed = book.familyName.split("").reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 100000, 7);
       const written = await writeAndIllustrate(elder, session.theme, session.turns, seed);
       say(
-        written.source === "ai"
-          ? `Every part of the chapter is linked to the answer it came from (${written.chapter.sourceTurns.length} answers used).`
-          : "The AI writer isn't available right now, so this draft is the transcript, word for word. Nothing added.",
+        !written.draft
+          ? `Every part of the story is linked to the answer it came from (${written.chapter.sourceTurns.length} answers used).`
+          : `The story writer is resting right now, so the pages are ${name}'s words exactly as said, laid out as a book. Nothing added.`,
       );
       // The orchestrator's own record of who did what, and how long it took.
       for (const step of written.trace) {
-        if (step.agent === "story_writer" || step.agent === "illustrator") {
-          say(`${AGENT_LABEL[step.agent]}: ${step.outcome}${step.detail ? `. ${step.detail}` : ""} (${(step.ms / 1000).toFixed(1)} s)`);
+        if (step.agent in AGENT_LABEL) {
+          say(`${AGENT_LABEL[step.agent as keyof typeof AGENT_LABEL]}: ${step.outcome}${step.detail ? `. ${step.detail}` : ""} (${(step.ms / 1000).toFixed(1)} s)`);
         }
       }
       mark(1, "done");
@@ -106,9 +106,9 @@ function Writing() {
       let paintedUrls = written.pageImages;
       let coverUrl = written.imageUrl;
       if (written.source !== "ai") {
-        // The writer was out, but the painter needn't be: paint the draft from its theme's scenes.
-        // Only the scenes and title go to the painter, never the elder's words.
-        const art = await illustrateOnly(written.chapter, seed);
+        // The server couldn't be reached for the book; try the painter on its own with the theme's scenes.
+        // Only the title and scenes go to the painter, never the elder's words.
+        const art = await illustrateOnly(written.chapter, seed, session.theme);
         paintedUrls = art.pageImages ?? [];
         coverUrl = art.imageUrl ?? undefined;
       } else {
@@ -146,7 +146,7 @@ function Writing() {
         turns: session.turns,
         imageUrl: cover,
         pageImages,
-        draft: written.source !== "ai",
+        draft: written.draft,
       };
       saveChapter(stored);
       await pause(500);

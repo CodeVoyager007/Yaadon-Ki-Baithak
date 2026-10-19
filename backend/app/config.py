@@ -43,8 +43,9 @@ class Settings:
             m.strip() for m in _env("GEMINI_FALLBACK_MODELS", "gemini-2.5-flash-lite,gemini-2.0-flash").split(",") if m.strip()
         )
     )
-    # Transcribing every answer would eat the writer's quota; a lighter model hears just as well.
-    gemini_transcribe_model: str = field(default_factory=lambda: _env("GEMINI_TRANSCRIBE_MODEL", "gemini-2.5-flash-lite"))
+    # Small jobs (transcribing each answer, painting briefs) run on a lighter model with its own quota,
+    # so they don't eat the story writer's.
+    gemini_light_model: str = field(default_factory=lambda: _env("GEMINI_LIGHT_MODEL", "gemini-2.5-flash-lite"))
 
     cloudflare_account_id: str = field(default_factory=lambda: _env("CLOUDFLARE_ACCOUNT_ID"))
     cloudflare_api_token: str = field(default_factory=lambda: _env("CLOUDFLARE_API_TOKEN"))

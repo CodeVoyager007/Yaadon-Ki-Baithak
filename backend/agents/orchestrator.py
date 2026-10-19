@@ -1,11 +1,17 @@
-"""Orchestrator: runs the three agents as one team.
+"""Orchestrator: runs the agents as one team.
 
 Hudhud (the interviewer) makes the creative decision every turn, including
-when the chapter is ready. The orchestrator owns everything around that:
+when the story is ready. Then a book is made by a line of agents, each with
+one job:
+  story writer (edits the story) -> page setter (lays out pages)
+  -> art director (a painting brief per page) -> illustrator (paints the pages
+  side by side) -> the orchestrator binds the book.
+The orchestrator owns everything around them:
 - the hand-off: when Hudhud wraps up, the session goes to the story writer;
-- the pipeline: writer, then illustrator, with the writer's scene passed along;
-- failure policy: no chapter means fail honestly (the browser keeps the
-  transcript as a draft), but a failed painting still keeps the chapter;
+- failure policy: each step has a fallback, so one tired model never costs the
+  family their book. No edited story: the page setter lays out the elder's own
+  words as a draft. No briefs: the theme's calm scenes. A failed painting:
+  that page keeps the theme picture;
 - a trace of every step with timings, for the demo's "agent thinking" panel.
 
 It is deliberately plain code, not another LLM: routing has exactly one right
@@ -19,8 +25,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Literal, Optional
 
+from .art_director import fill_from_theme, run_art_director
 from .illustrator import illustration_request
 from .interviewer import Mode, Signals, run_interviewer
+from .page_setter import draft_chapter, lay_out
 from .story_writer import run_story_writer
 from .types import Chapter, ElderProfile, IllustrationRequest, InterviewerDecision, JsonModel, TraceStep, Turn
 
@@ -49,6 +57,11 @@ class ChapterOutcome:
     image_url: Optional[str] = None  # the cover: the first page that was painted
     trace: list[TraceStep] = field(default_factory=list)
     page_images: list[Optional[str]] = field(default_factory=list)  # one per page, None where painting failed
+    draft: bool = False  # the story writer couldn't run; the pages are the elder's words as said
+
+
+def _why(err: Exception) -> str:
+    return (str(err) or type(err).__name__)[:200]
 
 
 def _ms(start: float) -> int:
@@ -56,9 +69,11 @@ def _ms(start: float) -> int:
 
 
 class Orchestrator:
-    def __init__(self, text_model: Optional[JsonModel], painter: Optional[Painter] = None):
+    def __init__(self, text_model: Optional[JsonModel], painter: Optional[Painter] = None, light_model: Optional[JsonModel] = None):
         self.text_model = text_model
         self.painter = painter
+        # Small jobs (painting briefs) run on a lighter model with its own quota.
+        self.light_model = light_model or text_model
 
     async def interview_turn(
         self,
@@ -95,32 +110,79 @@ class Orchestrator:
     async def write_chapter(
         self, elder: ElderProfile, theme: str, turns: list[Turn], family_seed: int
     ) -> ChapterOutcome:
-        """The hand-off pipeline: story writer, then illustrator on the writer's scene."""
+        """The book line: story writer, page setter, art director, illustrator."""
         trace: list[TraceStep] = []
-        if not self.text_model:
-            return ChapterOutcome(None, trace=[TraceStep(agent="orchestrator", outcome="story writer not configured")])
 
+        # 1. Story writer: the edited story, in their voice.
+        chapter: Optional[Chapter] = None
         start = time.perf_counter()
-        chapter = await run_story_writer(self.text_model, elder, theme, turns)
-        if not chapter:
-            trace.append(TraceStep(agent="story_writer", outcome="no usable chapter", ms=_ms(start)))
-            return ChapterOutcome(None, trace=trace)
+        if self.text_model:
+            try:
+                chapter = await run_story_writer(self.text_model, elder, theme, turns)
+            except Exception as err:
+                trace.append(TraceStep(agent="story_writer", outcome="unavailable", detail=_why(err), ms=_ms(start)))
+            else:
+                if chapter:
+                    trace.append(
+                        TraceStep(
+                            agent="story_writer",
+                            outcome="story edited",
+                            detail=f"{len(chapter.source_turns)} answers used, {len(chapter.unclear)} unclear parts marked",
+                            ms=_ms(start),
+                        )
+                    )
+                else:
+                    trace.append(TraceStep(agent="story_writer", outcome="no usable story", ms=_ms(start)))
+        else:
+            trace.append(TraceStep(agent="orchestrator", outcome="story writer not configured"))
+
+        # 2. Page setter: pages from the edited story, or from their own words as a draft.
+        start = time.perf_counter()
+        draft = chapter is None
+        if chapter:
+            chapter.pages = lay_out(chapter.pages)
+        else:
+            chapter = draft_chapter(elder, theme, turns)
+            if not chapter:
+                return ChapterOutcome(None, trace=trace)
         trace.append(
             TraceStep(
-                agent="story_writer",
-                outcome="chapter written",
-                detail=f"{len(chapter.source_turns)} answers used, {len(chapter.unclear)} unclear parts marked",
+                agent="page_setter",
+                outcome=f"{len(chapter.pages)} {'page' if len(chapter.pages) == 1 else 'pages'} laid out" + (" from their own words (draft)" if draft else ""),
+                detail="whole sentences, Urdu and English on the same page",
                 ms=_ms(start),
             )
         )
 
+        # 3. Art director: one painting brief per page.
+        await self._direct(chapter, theme, trace)
+
+        # 4. Illustrator: every page, side by side.
         page_images = await self._paint(chapter, family_seed, trace)
         cover = next((u for u in page_images if u), None)
-        return ChapterOutcome(chapter, cover, trace, page_images)
+        return ChapterOutcome(chapter, cover, trace, page_images, draft)
 
-    async def paint_chapter(self, chapter: Chapter, family_seed: int) -> tuple[list[Optional[str]], list[TraceStep]]:
-        """Paint an existing book again, page by page."""
+    async def _direct(self, chapter: Chapter, theme: str, trace: list[TraceStep]) -> None:
+        start = time.perf_counter()
+        written = 0
+        problem = ""
+        try:
+            written = await run_art_director(self.light_model, chapter)
+        except Exception as err:
+            problem = _why(err)
+        filled = fill_from_theme(chapter, theme)
+        if written:
+            outcome = f"wrote {written} painting briefs" + (f", {filled} from the theme" if filled else "")
+        elif filled:
+            outcome = f"used the theme's scenes for {filled} pages"
+        else:
+            outcome = "kept the writer's scenes"
+        trace.append(TraceStep(agent="art_director", outcome=outcome, detail=problem or (chapter.scene or ""), ms=_ms(start)))
+
+    async def paint_chapter(self, chapter: Chapter, family_seed: int, theme: str = "") -> tuple[list[Optional[str]], list[TraceStep]]:
+        """Paint an existing book again, page by page. Pages without a brief get the theme's scenes."""
         trace: list[TraceStep] = []
+        fill_from_theme(chapter, theme)
         return await self._paint(chapter, family_seed, trace), trace
 
     async def _paint(self, chapter: Chapter, family_seed: int, trace: list[TraceStep]) -> list[Optional[str]]:

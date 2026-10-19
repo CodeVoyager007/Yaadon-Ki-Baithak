@@ -74,7 +74,7 @@ export type Chapter = {
 
 /** One step the orchestrator took, for an "agent thinking" panel. */
 export type TraceStep = {
-  agent: "interviewer" | "story_writer" | "illustrator" | "orchestrator";
+  agent: "interviewer" | "story_writer" | "page_setter" | "art_director" | "illustrator" | "orchestrator";
   outcome: string;
   detail: string;
   ms: number;

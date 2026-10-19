@@ -1,4 +1,4 @@
-"""The agent routes: the interviewer's turn, and the orchestrated chapter (writer, then illustrator)."""
+"""The agent routes: the interviewer's turn, and the orchestrated book (writer, page setter, art director, illustrator)."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ def _orchestrator(user_id):
     return Orchestrator(
         text_model=gemini.generate_json if s.has_gemini else None,
         painter=painter_for(user_id) if s.has_cloudflare else None,
+        light_model=gemini.generate_json_light if s.has_gemini else None,
     )
 
 
@@ -66,12 +67,12 @@ async def turn(request: Request):
 
 @router.post("/chapter")
 async def chapter(request: Request):
-    """Body: { elder, theme, turns, familySeed } -> { chapter, imageUrl?, trace }.
-    The hand-off pipeline in one call: story writer, then illustrator. A failed
-    painting still returns the chapter; no chapter is a 502 and the browser keeps
-    the transcript as a draft."""
+    """Body: { elder, theme, turns, familySeed } -> { chapter, draft, imageUrl?, pageImages, trace }.
+    The book line in one call. When the story writer can't run, the book is still
+    made from the elder's own words (draft: true), laid out and painted; only a
+    session with no words at all is a 502."""
     caller = await require_caller(request, "chapter")
-    if not settings().has_gemini:
+    if not (settings().has_gemini or settings().has_cloudflare):
         raise not_configured("The story writer")
     body = await read_json(request)
     elder, turns = clean_elder(body.get("elder")), clean_turns(body.get("turns"), 60)
@@ -86,6 +87,7 @@ async def chapter(request: Request):
         raise provider_failed("The story writer")
     return {
         "chapter": out.chapter.model_dump(by_alias=True, exclude_none=True),
+        "draft": out.draft,
         "imageUrl": out.image_url,
         "pageImages": out.page_images,
         "trace": [t.model_dump(by_alias=True) for t in out.trace],
@@ -94,13 +96,14 @@ async def chapter(request: Request):
 
 @router.post("/illustrate")
 async def illustrate(request: Request):
-    """Body: { chapter: { title, scene?, year?, place?, pages?: [{ scene }] }, familySeed }
-    -> { imageUrl?, pageImages, trace }. Paints an existing book again, page by page."""
+    """Body: { chapter: { title, scene?, year?, place?, pages?: [{ scene }] }, theme?, familySeed }
+    -> { imageUrl?, pageImages, trace }. Paints an existing book again, page by page;
+    a page without a scene gets one of the theme's."""
     caller = await require_caller(request, "illustrate")
     body = await read_json(request)
     brief = clean_painting_brief(body.get("chapter"))
     try:
-        page_images, trace = await _orchestrator(caller.user_id).paint_chapter(brief, clean_seed(body.get("familySeed")))
+        page_images, trace = await _orchestrator(caller.user_id).paint_chapter(brief, clean_seed(body.get("familySeed")), clean_theme(body.get("theme")))
     except Exception as err:
         log.error("[api/illustrate] %s", err)
         raise provider_failed("The illustrator") from None

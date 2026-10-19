@@ -4,12 +4,12 @@ import { animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion,
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AJRAK_BORDER } from "@/components/app/AppBackdrop";
-import { VoiceClip } from "@/components/app/VoiceClip";
 import { SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { elderLabel, type Elder } from "@/lib/book-store";
 import { bookPages, coverImage, shownQuote, type BookPage } from "@/lib/book-pages";
-import { voiceLength, type StoredChapter, type Turn } from "@/lib/chapter-store";
+import { voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { StoryImage } from "./StoryImage";
+import { WholeStory } from "./WholeStory";
 
 type Lang = "both" | "ur" | "en";
 /** One side of an open spread. `full` sides are boards (the cover, the inside of the cover), not paper. */
@@ -41,10 +41,6 @@ function useWide() {
 }
 
 /** The recording a page was written from, so the reader can hear it in the elder's own voice. */
-function voiceFor(page: BookPage, turns: Turn[]) {
-  return page.sourceTurns.map((n) => turns.find((t) => t.index === n && t.role === "elder")).find((t) => t && (t.clipId || t.audioPath));
-}
-
 /** How far through the turn a sheet is, 0 to 1. */
 function progressOf(angle: number, flip: Flip | null) {
   if (!flip) return 0;
@@ -77,7 +73,6 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
   const who = elder ? elderLabel(elder) : "their storyteller";
   const pages = useMemo(() => bookPages(stored), [stored]);
   const quote = shownQuote(chapter);
-  const quoteTurn = quote ? turns.find((t) => t.index === quote.turnIndex) : undefined;
   const date = (() => {
     const d = new Date(stored.createdAt);
     return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -160,7 +155,6 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
     const en = paragraphs(p.en);
     const showUr = ur.length > 0 && lang !== "en";
     const showEn = en.length > 0 && (lang !== "ur" || ur.length === 0);
-    const voice = voiceFor(p, turns);
     return (
       <div className="flex h-full flex-col px-7 py-8 sm:px-9">
         <div className="min-h-0 flex-1 overflow-y-auto pr-1" data-scroll>
@@ -184,12 +178,6 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
           )}
           {!showUr && !showEn && <p className="font-display italic text-[#7a5a3a]">This page is in {lang === "ur" ? "English" : "Urdu"} only.</p>}
         </div>
-        {voice && (
-          <div className="mt-4 border-t border-[#c9ad7f]/60 pt-3">
-            <p className="mb-1.5 text-xs font-bold text-[#7a5a3a]">Hear {who} tell this part</p>
-            <VoiceClip clipId={voice.clipId} audioPath={voice.audioPath} durationMs={voice.durationMs} label={`Hear ${who} tell this part`} tone="paper" />
-          </div>
-        )}
         <p className="mt-3 text-center font-display text-xs text-[#7a5a3a]">{n}</p>
       </div>
     );
@@ -206,9 +194,6 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
         «{quote.text}»
       </blockquote>
       <p className="mt-2 text-sm text-[#7a5a3a]">{who}, in their own words</p>
-      <div className="mt-5 w-full max-w-xs">
-        <VoiceClip clipId={quoteTurn?.clipId} audioPath={quoteTurn?.audioPath} durationMs={quoteTurn?.durationMs} label="Hear this line" tone="paper" />
-      </div>
     </div>
   ) : (
     <StoryImage src={cover} fallback={coverFallback} className="h-full w-full object-cover" />
@@ -265,7 +250,7 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
     ];
     // the page builders read lang, who and the rest from this render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wide, stored, pages, lang, who, date, family, quoteTurn]);
+  }, [wide, stored, pages, lang, who, date, family, quote]);
 
   const last = views.length - 1;
   // An edit can make the book shorter than the page we're on.
@@ -499,7 +484,8 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
 
   return (
     <section aria-roledescription="storybook" aria-label={chapter.title.en || chapter.title.ur} className="select-none">
-      <div className="mb-5 flex justify-center">
+      <div className="mb-5 flex flex-col items-center gap-3">
+        <WholeStory turns={turns} who={who} />
         <div className="glass-night inline-flex rounded-full p-1" role="tablist" aria-label="Language">
           {(
             [

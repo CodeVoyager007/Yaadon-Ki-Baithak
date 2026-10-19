@@ -307,7 +307,7 @@ def test_a_bad_request_is_not_retried_on_every_model(env, monkeypatch):
 
 
 def test_transcription_uses_the_light_model_first(env, monkeypatch):
-    env(GEMINI_API_KEY="k1", GEMINI_MODEL="main", GEMINI_TRANSCRIBE_MODEL="lite")
+    env(GEMINI_API_KEY="k1", GEMINI_MODEL="main", GEMINI_LIGHT_MODEL="lite")
     calls = _fake_gemini_http(monkeypatch, lambda model, key: 200)
     asyncio.run(gemini.transcribe(b"\0", "audio/webm", "ur"))
     assert calls[0][0] == "lite"

@@ -17,7 +17,7 @@ import type { Elder, Theme } from "./book-store";
 import { elderLabel } from "./book-store";
 import type { Turn } from "./chapter-store";
 import { MAX_PAGES } from "./book-pages";
-import { DRAFT_SCENES, PRACTICE_CLARIFY, PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
+import { PRACTICE_CLARIFY, PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
 import { hasSupabase, supabaseBrowser } from "./supabase/client";
 
 export type Source = "ai" | "stand-in";
@@ -165,9 +165,13 @@ export async function transcribe(
   return { text: liveCaption.trim(), source: "stand-in" as Source };
 }
 
-/** POST /api/chapter  { elder, theme, turns, familySeed } -> { chapter, imageUrl?, trace }: the writer, then the illustrator. */
+/**
+ * POST /api/chapter  { elder, theme, turns, familySeed } -> { chapter, draft, imageUrl?, pageImages, trace }:
+ * the book line (story writer, page setter, art director, illustrator). `draft` means the writer couldn't
+ * run and the pages are the elder's own words, still laid out and painted by the server.
+ */
 export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn[], familySeed: number) {
-  const ai = await post<{ chapter: Chapter; imageUrl?: string | null; pageImages?: (string | null)[]; trace: TraceStep[] }>("/api/chapter", {
+  const ai = await post<{ chapter: Chapter; draft?: boolean; imageUrl?: string | null; pageImages?: (string | null)[]; trace: TraceStep[] }>("/api/chapter", {
     elder: profile(elder),
     theme,
     turns: plain(turns),
@@ -179,6 +183,7 @@ export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn
       imageUrl: ai.imageUrl ?? undefined,
       pageImages: ai.pageImages ?? [],
       trace: ai.trace ?? [],
+      draft: ai.draft === true,
       source: "ai" as Source,
     };
   }
@@ -187,6 +192,7 @@ export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn
     imageUrl: undefined,
     pageImages: [] as (string | null)[],
     trace: [] as TraceStep[],
+    draft: true,
     source: "stand-in" as Source,
   };
 }
@@ -198,11 +204,14 @@ export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn
 export async function illustrateOnly(
   chapter: Chapter,
   familySeed: number,
+  theme?: Theme,
 ): Promise<{ imageUrl?: string | null; pageImages?: (string | null)[]; trace?: TraceStep[] }> {
   const { title, scene, year, place } = chapter;
   const pages = (chapter.pages ?? []).map((p) => ({ scene: p.scene }));
+  // Pages without a scene get one of the theme's from the server.
   const ai = await post<{ imageUrl?: string | null; pageImages?: (string | null)[]; trace: TraceStep[] }>("/api/illustrate", {
     chapter: { title, scene, year, place, pages },
+    theme,
     familySeed,
   });
   if (ai) return { imageUrl: ai.imageUrl, pageImages: ai.pageImages, trace: ai.trace };
@@ -235,7 +244,7 @@ function pieces(text: string) {
  * per page, never more than MAX_PAGES (a long telling just gets fuller pages). Each page keeps
  * the answers it came from, so it can be traced back to the recording.
  */
-function answersToPages(answers: Turn[], scenes: string[]) {
+function answersToPages(answers: Turn[]) {
   const parts = answers.flatMap((t) => pieces(t.text).map((text) => ({ text, lang: t.lang, index: t.index })));
   const total = parts.reduce((n, p) => n + words(p.text), 0);
   const target = Math.max(WORDS_PER_PAGE, Math.ceil(total / MAX_PAGES));
@@ -264,10 +273,9 @@ function answersToPages(answers: Turn[], scenes: string[]) {
     }
     return out.join("\n\n");
   };
-  return groups.map((group, i) => ({
+  return groups.map((group) => ({
     ur: join(group, "ur"),
     en: join(group, "en"),
-    scene: scenes[i % scenes.length],
     sourceTurns: [...new Set(group.map((p) => p.index))],
   }));
 }
@@ -288,7 +296,6 @@ function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
   const ur = answers.filter((t) => t.lang === "ur").map((t) => t.text.trim());
   const en = answers.filter((t) => t.lang === "en").map((t) => t.text.trim());
   const themeInfo = THEMES.find((t) => t.id === theme);
-  const scenes = DRAFT_SCENES[theme] ?? DRAFT_SCENES["Free talk"];
   const who = elderLabel(elder);
   // Urdu title uses the relation in Urdu, never an English-letter name inside Nastaliq.
   const urWho = { Nani: "نانی", Nana: "نانا", Dadi: "دادی", Dada: "دادا", Other: "ان" }[elder.relation];
@@ -299,10 +306,9 @@ function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
       ur: theme === "Free talk" || !themeInfo ? `${urWho} کی یادیں` : `${urWho} کی یادیں: ${themeInfo.ur}`,
     },
     body: { ur: ur.join("\n\n"), en: en.join("\n\n") },
-    pages: answersToPages(answers, scenes),
+    pages: answersToPages(answers),
     sourceTurns: answers.map((t) => t.index),
     pullQuote: shortQuote(answers),
-    scene: scenes[0],
     year: theme === "1947" ? "1947" : undefined,
     place: elder.birthplace,
   };

@@ -95,7 +95,7 @@ class IllustrationRequest(Wire):
 class TraceStep(Wire):
     """One step the orchestrator took, for the demo's "agent thinking" panel."""
 
-    agent: Literal["interviewer", "story_writer", "illustrator", "orchestrator"]
+    agent: Literal["interviewer", "story_writer", "page_setter", "art_director", "illustrator", "orchestrator"]
     outcome: str
     detail: str = ""
     ms: int = 0
