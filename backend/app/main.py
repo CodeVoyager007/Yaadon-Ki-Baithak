@@ -114,6 +114,12 @@ async def unexpected_error(_request: Request, exc: Exception):
     return JSONResponse({"error": "Something went wrong. Try again in a moment."}, status_code=500)
 
 
+@app.get("/")
+async def root():
+    """Opening the API's address in a browser says what it is, instead of "Not Found"."""
+    return {"service": "Yaadon ki Baithak API", "health": "/health", "app": "https://yaadon-ki-baithak.vercel.app"}
+
+
 @app.get("/health")
 async def health():
     """For the host's health check and a quick look at what's connected. No secrets."""
