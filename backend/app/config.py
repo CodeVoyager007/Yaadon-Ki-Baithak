@@ -8,6 +8,7 @@ than open; local development sets APP_ENV=development in .env.
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -23,6 +24,11 @@ except Exception:
 
 def _env(name: str, default: str = "") -> str:
     return os.environ.get(name, "").strip() or default
+
+
+def _origin(url: str) -> str:
+    parts = urlsplit(url.strip())
+    return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else url.strip().rstrip("/")
 
 
 @dataclass(frozen=True)
@@ -54,7 +60,8 @@ class Settings:
         default_factory=lambda: _env("CLOUDFLARE_TRANSCRIBE_MODEL", "@cf/openai/whisper-large-v3-turbo")
     )
 
-    supabase_url: str = field(default_factory=lambda: _env("SUPABASE_URL").rstrip("/"))
+    # Only the origin: the dashboard also shows the REST endpoint (…/rest/v1/), which would break every call.
+    supabase_url: str = field(default_factory=lambda: _origin(_env("SUPABASE_URL")))
     supabase_anon_key: str = field(default_factory=lambda: _env("SUPABASE_ANON_KEY"))
     supabase_service_key: str = field(default_factory=lambda: _env("SUPABASE_SERVICE_ROLE_KEY"))
 

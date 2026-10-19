@@ -369,3 +369,8 @@ def test_a_used_up_day_is_not_waited_for_and_the_live_interviewer_never_waits(en
 def test_the_root_says_what_this_is(env):
     body = TestClient(app).get("/").json()
     assert body["service"] == "Yaadon ki Baithak API" and body["health"] == "/health"
+
+
+def test_a_pasted_rest_url_is_reduced_to_the_project_origin(env):
+    env(SUPABASE_URL="https://abc.supabase.co/rest/v1/")
+    assert config.settings().supabase_url == "https://abc.supabase.co"

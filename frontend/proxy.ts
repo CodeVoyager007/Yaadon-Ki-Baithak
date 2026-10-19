@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_URL } from "@/lib/supabase/url";
 
 /** Pages that need a signed-in family historian. /record stays open for elders. */
 const PROTECTED = ["/book", "/onboarding"];
@@ -10,7 +11,7 @@ const PROTECTED = ["/book", "/onboarding"];
  * 2. Sends signed-out visitors away from private pages.
  */
 export async function proxy(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const { pathname, search } = request.nextUrl;
   const isProtected = PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));

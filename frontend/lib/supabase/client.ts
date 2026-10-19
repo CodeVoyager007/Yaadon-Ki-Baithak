@@ -1,6 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { SUPABASE_URL } from "./url";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const url = SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 /** False until the team adds Supabase keys to .env.local. */
