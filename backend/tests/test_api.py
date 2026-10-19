@@ -311,3 +311,56 @@ def test_transcription_uses_the_light_model_first(env, monkeypatch):
     calls = _fake_gemini_http(monkeypatch, lambda model, key: 200)
     asyncio.run(gemini.transcribe(b"\0", "audio/webm", "ur"))
     assert calls[0][0] == "lite"
+
+
+def test_new_style_secret_keys_go_in_apikey_alone(env):
+    from app.supabase import service_headers
+
+    env(SUPABASE_URL="https://x.supabase.co", SUPABASE_ANON_KEY="anon-jwt")
+    assert service_headers("sb_secret_abc") == {"apikey": "sb_secret_abc"}
+    assert service_headers("user.jwt.token") == {"apikey": "anon-jwt", "Authorization": "Bearer user.jwt.token"}
+
+
+def _quota_429(per_day: bool, delay: str = "12s"):
+    quota = "GenerateRequestsPerDayPerProjectPerModel-FreeTier" if per_day else "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+    return {"error": {"code": 429, "details": [
+        {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [{"quotaId": quota}]},
+        {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": delay},
+    ]}}
+
+
+def _limited_http(monkeypatch, per_day):
+    """Every model is at its limit on the first round, then answers."""
+    calls, waits = [], []
+    ok = {"candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]}
+
+    class FakeClient:
+        async def post(self, url, headers, json, timeout):
+            calls.append(url.rsplit("/", 1)[1].split(":")[0])
+            return _Res(200, ok) if waits else _Res(429, _quota_429(per_day))
+
+    async def sleep(s):
+        waits.append(s)
+
+    monkeypatch.setattr(gemini, "client", lambda: FakeClient())
+    monkeypatch.setattr(gemini.asyncio, "sleep", sleep)
+    return calls, waits
+
+
+def test_the_book_waits_out_a_per_minute_limit(env, monkeypatch):
+    env(GEMINI_API_KEY="k1", GEMINI_MODEL="main", GEMINI_FALLBACK_MODELS="lite")
+    calls, waits = _limited_http(monkeypatch, per_day=False)
+    assert asyncio.run(gemini.generate_json_book("s", "u")) == {"ok": True}
+    assert waits == [13] and calls == ["main", "lite", "main"]
+
+
+def test_a_used_up_day_is_not_waited_for_and_the_live_interviewer_never_waits(env, monkeypatch):
+    env(GEMINI_API_KEY="k1", GEMINI_MODEL="main", GEMINI_FALLBACK_MODELS="lite")
+    calls, waits = _limited_http(monkeypatch, per_day=True)
+    with pytest.raises(gemini.GeminiError, match="daily quota"):
+        asyncio.run(gemini.generate_json_book("s", "u"))
+    assert waits == []
+    calls2, waits2 = _limited_http(monkeypatch, per_day=False)
+    with pytest.raises(gemini.GeminiError):
+        asyncio.run(gemini.generate_json("s", "u"))
+    assert waits2 == []

@@ -33,13 +33,21 @@ async def user_id_for(token: str) -> Optional[str]:
         return None
 
 
+def service_headers(bearer: str) -> dict[str, str]:
+    """Headers for a request as `bearer`: a user's access token, or the server key.
+    Supabase's newer secret keys (sb_secret_...) aren't JWTs: they go in `apikey` alone."""
+    if bearer.startswith("sb_"):
+        return {"apikey": bearer}
+    s = settings()
+    return {"apikey": s.supabase_anon_key or s.supabase_service_key, "Authorization": f"Bearer {bearer}"}
+
+
 @dataclass(frozen=True)
 class Supa:
     bearer: str
 
     def _headers(self, extra: Optional[dict[str, str]] = None) -> dict[str, str]:
-        s = settings()
-        return {"apikey": s.supabase_anon_key or s.supabase_service_key, "Authorization": f"Bearer {self.bearer}", **(extra or {})}
+        return {**service_headers(self.bearer), **(extra or {})}
 
     async def select(self, table: str, params: dict[str, str]) -> list[dict[str, Any]]:
         """PostgREST read, e.g. select("families", {"select": "id", "owner_id": "eq.<uuid>"})."""

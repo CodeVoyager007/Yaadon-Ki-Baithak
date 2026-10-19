@@ -25,6 +25,44 @@ def load_env() -> None:
             os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
+async def check_gemini(s) -> None:
+    """Every key against every model the app uses: which still have quota today, before a demo finds out."""
+    from .http_client import client
+    from .providers import gemini
+
+    text_models = list(dict.fromkeys([s.gemini_model, s.gemini_light_model, *s.gemini_fallback_models]))
+    keys = gemini._keys()
+    print(f"Gemini: {len(keys)} key(s); the book tries {', '.join(text_models)} in turn")
+    body = {"contents": [{"parts": [{"text": "Reply with the word ok."}]}], "generationConfig": {"maxOutputTokens": 5}}
+    usable = 0
+    for k, key in enumerate(keys, 1):
+        for model in text_models:
+            try:
+                res = await client().post(
+                    f"{gemini.BASE}/{model}:generateContent", headers={"x-goog-api-key": key}, json=body, timeout=30
+                )
+            except Exception as err:
+                print(f"   key {k} · {model}: X no answer ({type(err).__name__})")
+                continue
+            if res.status_code == 200:
+                usable += 1
+                print(f"   key {k} · {model}: ok")
+                continue
+            err = gemini._error_from(res, model)
+            why = {
+                429: "daily quota used up (resets at midnight Pacific)" if err.per_day else f"per-minute limit, free again in {err.retry_after or '?'} s",
+                404: "this model isn't available to this key (check the name in AI Studio)",
+                403: "key refused (wrong key, or the Generative Language API is off)",
+                400: "bad request (often an invalid key)",
+            }.get(res.status_code, f"answered {res.status_code}")
+            print(f"   key {k} · {model}: X {why}")
+    if usable:
+        print(f"ok Gemini: {usable} key/model pair(s) answering. Stories will be edited, not drafts.")
+    else:
+        print("X  Gemini: nothing is answering right now. Books will be drafts (still laid out and painted) until quota returns.")
+    print("   Tip: keys made in the same Google project share one quota. Each extra key must come from a different account/project.")
+
+
 async def main() -> None:
     load_env()
     from agents import Bilingual, illustration_request
@@ -36,11 +74,7 @@ async def main() -> None:
     print("Keys found:", ", ".join(f"{name} {'yes' if ok else 'NO'}" for name, ok in (("Gemini", s.has_gemini), ("Cloudflare", s.has_cloudflare), ("Supabase", s.has_supabase))))
 
     if s.has_gemini:
-        try:
-            reply = await gemini.generate_json("Reply only with JSON.", 'Reply with {"ok": true}.', 0)
-            print("ok Gemini answered:", reply)
-        except Exception as err:
-            print("X  Gemini failed:", str(err)[:200], "(check GEMINI_API_KEY, or the free daily limit)")
+        await check_gemini(s)
 
     if s.has_cloudflare:
         try:
@@ -64,7 +98,9 @@ async def main() -> None:
     if s.has_supabase and s.supabase_service_key:
         from .http_client import client
 
-        headers = {"apikey": s.supabase_service_key, "Authorization": f"Bearer {s.supabase_service_key}"}
+        from .supabase import service_headers
+
+        headers = service_headers(s.supabase_service_key)
         try:
             res = await client().get(f"{s.supabase_url}/storage/v1/bucket", headers=headers, timeout=15)
             names = {b.get("name") for b in res.json()} if res.status_code == 200 else set()

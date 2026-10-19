@@ -6,9 +6,10 @@ from __future__ import annotations
 import base64
 import json
 import re
+import asyncio
 import logging
 import struct
-from typing import Any
+from typing import Any, Optional
 
 from agents import ModelReplyError
 
@@ -25,11 +26,37 @@ TRANSCRIBE_TIMEOUT_S = 120.0
 log = logging.getLogger("baithak.gemini")
 
 
+# Book-making (not the live conversation) may wait this long for a per-minute limit to reset.
+PATIENCE_S = 35.0
+
+
 class GeminiError(RuntimeError):
-    def __init__(self, status: int, model: str):
-        super().__init__(f"Gemini answered {status} ({model})")
+    def __init__(self, status: int, model: str, retry_after: Optional[float] = None, per_day: bool = False):
+        super().__init__(f"Gemini answered {status} ({model})" + (" daily quota used up" if per_day else ""))
         self.status = status
         self.model = model
+        # A 429 says which limit was hit and when to try again; a per-minute limit is worth waiting for.
+        self.retry_after = retry_after
+        self.per_day = per_day
+
+    @property
+    def wait_helps(self) -> bool:
+        return self.status == 429 and not self.per_day and self.retry_after is not None
+
+
+def _error_from(res: Any, model: str) -> GeminiError:
+    retry_after: Optional[float] = None
+    per_day = False
+    try:
+        for d in (res.json().get("error") or {}).get("details") or []:
+            kind = str(d.get("@type", ""))
+            if kind.endswith("RetryInfo"):
+                retry_after = float(str(d.get("retryDelay", "")).rstrip("s") or 0) or None
+            elif kind.endswith("QuotaFailure"):
+                per_day = any("PerDay" in str(v.get("quotaId", "")) for v in d.get("violations") or [])
+    except Exception:
+        pass
+    return GeminiError(res.status_code, model, retry_after, per_day)
 
 
 # A malformed request fails the same way everywhere; anything else (out of quota, overloaded,
@@ -45,8 +72,9 @@ def _keys() -> tuple[str, ...]:
 
 
 async def _generate(model: str, body: dict[str, Any], timeout: float = TIMEOUT_S) -> dict[str, Any]:
-    """One model, every key in turn."""
+    """One model, every key in turn. Raises the most hopeful failure (the soonest per-minute reset)."""
     last_err: Exception | None = None
+    hopeful: Optional[GeminiError] = None
     for key in _keys():
         try:
             res = await client().post(
@@ -57,19 +85,23 @@ async def _generate(model: str, body: dict[str, Any], timeout: float = TIMEOUT_S
             )
             if res.status_code == 200:
                 return res.json()
-            last_err = GeminiError(res.status_code, model)
+            last_err = _error_from(res, model)
+            if last_err.wait_helps and (hopeful is None or last_err.retry_after < hopeful.retry_after):  # type: ignore[operator]
+                hopeful = last_err
             if res.status_code in SAME_EVERYWHERE:
                 break
         except Exception as err:
             last_err = err
             continue
-    raise last_err or RuntimeError("Gemini failed on all keys")
+    raise hopeful or last_err or RuntimeError("Gemini failed on all keys")
 
 
-async def _generate_any(models: list[str], body: dict[str, Any], timeout: float = TIMEOUT_S) -> dict[str, Any]:
-    """The first model (every key), then each fallback model, so one exhausted quota never stops the book."""
+async def _generate_any(models: list[str], body: dict[str, Any], timeout: float = TIMEOUT_S, patience: float = 0.0) -> dict[str, Any]:
+    """The first model (every key), then each fallback model, so one exhausted quota never stops the book.
+    With patience, when every model is only at its per-minute limit, wait for the soonest reset and go round once more."""
     tried: list[str] = []
     last_err: Exception | None = None
+    soonest: Optional[float] = None
     for model in dict.fromkeys(m for m in models if m):
         try:
             reply = await _generate(model, body, timeout)
@@ -78,12 +110,19 @@ async def _generate_any(models: list[str], body: dict[str, Any], timeout: float 
             return reply
         except GeminiError as err:
             last_err = err
-            tried.append(f"{model} ({err.status})")
+            tried.append(f"{model} ({err.status}{', daily' if err.per_day else ''})")
+            if err.wait_helps:
+                soonest = err.retry_after if soonest is None else min(soonest, err.retry_after)  # type: ignore[type-var]
             if err.status in SAME_EVERYWHERE:
                 break
         except Exception as err:
             last_err = err
             tried.append(model)
+    if soonest is not None and soonest <= patience:
+        log.info("[gemini] every model at its per-minute limit (%s); waiting %.0f s", ", ".join(tried), soonest)
+        await asyncio.sleep(soonest + 1)
+        return await _generate_any(models, body, timeout)
+    log.warning("[gemini] no model answered: %s", ", ".join(tried))
     raise last_err or RuntimeError("Gemini failed on every model")
 
 
@@ -110,7 +149,7 @@ def parse_json(raw: str) -> Any:
         raise ModelReplyError(str(err)) from err
 
 
-async def _json(models: list[str], system: str, user: str, temperature: float) -> Any:
+async def _json(models: list[str], system: str, user: str, temperature: float, patience: float = 0.0) -> Any:
     reply = await _generate_any(
         models,
         {
@@ -118,6 +157,7 @@ async def _json(models: list[str], system: str, user: str, temperature: float) -
             "systemInstruction": {"parts": [{"text": system}]},
             "generationConfig": {"temperature": temperature, "responseMimeType": "application/json"},
         },
+        patience=patience,
     )
     text = _text(reply)
     if not text.strip():
@@ -130,9 +170,15 @@ async def generate_json(system: str, user: str, temperature: float = 0.7) -> Any
     return await _json(_text_models(settings().gemini_model), system, user, temperature)
 
 
+async def generate_json_book(system: str, user: str, temperature: float = 0.7) -> Any:
+    """The JsonModel for the story writer: like generate_json, but it waits out a per-minute limit,
+    since a short wait beats a draft."""
+    return await _json(_text_models(settings().gemini_model), system, user, temperature, PATIENCE_S)
+
+
 async def generate_json_light(system: str, user: str, temperature: float = 0.7) -> Any:
     """The JsonModel for small jobs (painting briefs): the light model first, then the rest of the chain."""
-    return await _json(_text_models(settings().gemini_light_model), system, user, temperature)
+    return await _json(_text_models(settings().gemini_light_model), system, user, temperature, PATIENCE_S)
 
 
 async def transcribe(audio: bytes, mime_type: str, lang: str) -> str:

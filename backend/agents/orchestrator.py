@@ -69,9 +69,17 @@ def _ms(start: float) -> int:
 
 
 class Orchestrator:
-    def __init__(self, text_model: Optional[JsonModel], painter: Optional[Painter] = None, light_model: Optional[JsonModel] = None):
+    def __init__(
+        self,
+        text_model: Optional[JsonModel],
+        painter: Optional[Painter] = None,
+        light_model: Optional[JsonModel] = None,
+        book_model: Optional[JsonModel] = None,
+    ):
         self.text_model = text_model
         self.painter = painter
+        # The story writer may wait out a per-minute limit; the live interviewer never does.
+        self.book_model = book_model or text_model
         # Small jobs (painting briefs) run on a lighter model with its own quota.
         self.light_model = light_model or text_model
 
@@ -116,9 +124,9 @@ class Orchestrator:
         # 1. Story writer: the edited story, in their voice.
         chapter: Optional[Chapter] = None
         start = time.perf_counter()
-        if self.text_model:
+        if self.book_model:
             try:
-                chapter = await run_story_writer(self.text_model, elder, theme, turns)
+                chapter = await run_story_writer(self.book_model, elder, theme, turns)
             except Exception as err:
                 trace.append(TraceStep(agent="story_writer", outcome="unavailable", detail=_why(err), ms=_ms(start)))
             else:

@@ -27,6 +27,7 @@ def _orchestrator(user_id):
         text_model=gemini.generate_json if s.has_gemini else None,
         painter=painter_for(user_id) if s.has_cloudflare else None,
         light_model=gemini.generate_json_light if s.has_gemini else None,
+        book_model=gemini.generate_json_book if s.has_gemini else None,
     )
 
 

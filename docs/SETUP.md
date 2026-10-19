@@ -22,7 +22,7 @@ See the root [README](../README.md#quick-start): the Python backend on port 8000
 | `NEXT_PUBLIC_API_URL` | The backend's origin, e.g. `https://you-baithak-api.hf.space` |
 | `NEXT_PUBLIC_SITE_URL` | WhatsApp/social link previews |
 
-**Backend** (`backend/.env`, and the host's secrets): `SUPABASE_URL`, `SUPABASE_ANON_KEY` (same project), `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ALLOWED_ORIGINS`, `TRUSTED_PROXY_HOPS` (0 locally), and `APP_ENV=development` for local runs only. Free Gemini keys run out daily: put extra keys in `GEMINI_API_KEYS` (comma separated), and when a model is out of quota the backend tries `GEMINI_FALLBACK_MODELS` (default `gemini-2.5-flash-lite,gemini-2.0-flash`). Details: [backend/README.md](../backend/README.md).
+**Backend** (`backend/.env`, and the host's secrets): `SUPABASE_URL`, `SUPABASE_ANON_KEY` (same project), `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ALLOWED_ORIGINS`, `TRUSTED_PROXY_HOPS` (0 locally), and `APP_ENV=development` for local runs only. Free Gemini quota runs out daily and is per Google project: put keys from other accounts in `GEMINI_API_KEYS` (comma separated), and when a model is out of quota the backend tries `GEMINI_FALLBACK_MODELS` (default `gemini-2.5-flash-lite,gemini-2.0-flash`). Details: [backend/README.md](../backend/README.md).
 
 AI and service-role keys exist only on the backend. Nothing secret ever gets a `NEXT_PUBLIC_` prefix.
 
@@ -63,5 +63,5 @@ In the Supabase dashboard:
 1. **Authentication → Providers → Email**: keep "Confirm email" ON, set minimum password length to **8**.
 2. **Authentication → URL Configuration**: Site URL = your Vercel URL. Redirect URLs = `https://YOUR-SITE.vercel.app/auth/callback` and `http://localhost:3000/auth/callback`. Nothing else.
 3. **Authentication → Providers → Google**: enable only after adding the Google OAuth client ID and secret (see the gotcha above).
-4. Run `backend/supabase/migrations/0001_init.sql`, `0002_turn_duration.sql` and `0003_hardening.sql` in order, so every table has row level security, the indexes exist, and share tokens and the ownership check are locked down.
+4. Run the five migrations in `backend/supabase/migrations/` in order (`0001` to `0005`), so every table has row level security, the indexes exist, share tokens and the ownership check are locked down, and books restore with their pages. Step by step: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 5. Never put the `service_role` key in any `NEXT_PUBLIC_` variable.
