@@ -55,7 +55,6 @@ export default function BookPage() {
   const first = book.elders[0];
   const firstTheme = THEMES.find((t) => t.id === book.theme) ?? THEMES[THEMES.length - 1];
   const coverScene = chapters[0]?.scene ?? firstTheme.scene;
-  const elderOf = (id: string) => book.elders.find((e) => e.id === id) ?? null;
 
   return (
     <div className="relative min-h-[100svh]">

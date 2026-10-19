@@ -68,7 +68,7 @@ async def main() -> None:
     from agents import Bilingual, illustration_request
 
     from .config import settings
-    from .providers import cloudflare, gemini
+    from .providers import cloudflare
 
     s = settings()
     print("Keys found:", ", ".join(f"{name} {'yes' if ok else 'NO'}" for name, ok in (("Gemini", s.has_gemini), ("Cloudflare", s.has_cloudflare), ("Supabase", s.has_supabase))))

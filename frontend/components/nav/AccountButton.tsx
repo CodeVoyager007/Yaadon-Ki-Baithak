@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, UserRound } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useAuth, useSignOut } from "@/lib/auth";
 
 /**

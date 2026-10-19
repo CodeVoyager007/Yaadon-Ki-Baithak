@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { AccountButton } from "@/components/nav/AccountButton";
 import { SoundToggle } from "@/components/sound/SoundToggle";
