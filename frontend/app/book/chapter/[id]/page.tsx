@@ -59,6 +59,12 @@ export default function ChapterPage() {
     }
   }
 
+  // The tab shows the book's own title, so several open books can be told apart.
+  useEffect(() => {
+    const title = stored?.chapter.title.en || stored?.chapter.title.ur;
+    if (title) document.title = `${title} | Baithak`;
+  }, [stored]);
+
   useEffect(() => {
     const c = getChapter(id);
     setStored(c);
@@ -81,7 +87,7 @@ export default function ChapterPage() {
         <AppBackdrop />
         <AppHeader back={{ href: "/book", label: "Family book" }} />
         <main className="mx-auto max-w-2xl px-5 pt-16">
-          <BirdySays>I can&apos;t find that storybook on this device.</BirdySays>
+          <BirdySays as="h1">I can&apos;t find that storybook on this device.</BirdySays>
           <Link href="/book" className="btn-lantern pixel-corners mt-6 inline-flex h-12 items-center px-6 font-extrabold">
             Back to the family book
           </Link>
@@ -129,7 +135,10 @@ export default function ChapterPage() {
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15"
+              // New paintings land on the pages as they are now; editing meanwhile would be overwritten.
+              disabled={painting}
+              title={painting ? "Wait for the new pictures first" : undefined}
+              className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15 disabled:opacity-50"
             >
               <Pencil size={15} />
               <span className="hidden sm:inline">Edit</span>
@@ -139,6 +148,7 @@ export default function ChapterPage() {
       </AppHeader>
 
       <main className="mx-auto max-w-6xl px-5 pb-24 pt-8">
+        <h1 className="sr-only">{stored.chapter.title.en || stored.chapter.title.ur}</h1>
         {paintNote && (
           <div className="glass-night mb-6 flex items-center justify-between rounded-2xl px-5 py-3 text-sm text-moon/90">
             <p>{paintNote}</p>

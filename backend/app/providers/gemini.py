@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+import logging
 import struct
 from typing import Any
 
@@ -21,13 +22,32 @@ TIMEOUT_S = 75.0
 # A whole story told in one go can be ten minutes of audio.
 TRANSCRIBE_TIMEOUT_S = 120.0
 
+log = logging.getLogger("baithak.gemini")
 
-async def _generate(model: str, body: dict[str, Any], timeout: float = TIMEOUT_S) -> dict[str, Any]:
+
+class GeminiError(RuntimeError):
+    def __init__(self, status: int, model: str):
+        super().__init__(f"Gemini answered {status} ({model})")
+        self.status = status
+        self.model = model
+
+
+# A malformed request fails the same way everywhere; anything else (out of quota, overloaded,
+# a bad key, a model this key can't use) is worth trying on the next key or model.
+SAME_EVERYWHERE = {400}
+
+
+def _keys() -> tuple[str, ...]:
     keys = settings().gemini_keys or ((settings().gemini_key,) if settings().gemini_key else ())
     if not keys:
         raise RuntimeError("GEMINI_API_KEY is missing")
+    return keys
+
+
+async def _generate(model: str, body: dict[str, Any], timeout: float = TIMEOUT_S) -> dict[str, Any]:
+    """One model, every key in turn."""
     last_err: Exception | None = None
-    for key in keys:
+    for key in _keys():
         try:
             res = await client().post(
                 f"{BASE}/{model}:generateContent",
@@ -37,11 +57,38 @@ async def _generate(model: str, body: dict[str, Any], timeout: float = TIMEOUT_S
             )
             if res.status_code == 200:
                 return res.json()
-            last_err = RuntimeError(f"Gemini answered {res.status_code}")
+            last_err = GeminiError(res.status_code, model)
+            if res.status_code in SAME_EVERYWHERE:
+                break
         except Exception as err:
             last_err = err
             continue
     raise last_err or RuntimeError("Gemini failed on all keys")
+
+
+async def _generate_any(models: list[str], body: dict[str, Any], timeout: float = TIMEOUT_S) -> dict[str, Any]:
+    """The first model (every key), then each fallback model, so one exhausted quota never stops the book."""
+    tried: list[str] = []
+    last_err: Exception | None = None
+    for model in dict.fromkeys(m for m in models if m):
+        try:
+            reply = await _generate(model, body, timeout)
+            if tried:
+                log.info("[gemini] %s answered after %s failed", model, ", ".join(tried))
+            return reply
+        except GeminiError as err:
+            last_err = err
+            tried.append(f"{model} ({err.status})")
+            if err.status in SAME_EVERYWHERE:
+                break
+        except Exception as err:
+            last_err = err
+            tried.append(model)
+    raise last_err or RuntimeError("Gemini failed on every model")
+
+
+def _text_models(first: str) -> list[str]:
+    return [first, settings().gemini_model, *settings().gemini_fallback_models]
 
 
 def _parts(reply: dict[str, Any]) -> list[dict[str, Any]]:
@@ -64,8 +111,8 @@ def parse_json(raw: str) -> Any:
 
 
 async def generate_json(system: str, user: str, temperature: float = 0.7) -> Any:
-    reply = await _generate(
-        settings().gemini_model,
+    reply = await _generate_any(
+        _text_models(settings().gemini_model),
         {
             "contents": [{"role": "user", "parts": [{"text": user}]}],
             "systemInstruction": {"parts": [{"text": system}]},
@@ -81,8 +128,8 @@ async def generate_json(system: str, user: str, temperature: float = 0.7) -> Any
 async def transcribe(audio: bytes, mime_type: str, lang: str) -> str:
     """Verbatim transcript of one recording (an answer, or a whole story) in the elder's own voice."""
     spoken = "Urdu" if lang == "ur" else "English"
-    reply = await _generate(
-        settings().gemini_model,
+    reply = await _generate_any(
+        _text_models(settings().gemini_transcribe_model),
         {
             "contents": [
                 {

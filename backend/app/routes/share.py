@@ -138,7 +138,7 @@ async def _chapter(admin: Supa, family_id: str, row: dict, by_session: dict, tur
             {
                 "ur": p.get("ur") if isinstance(p.get("ur"), str) else "",
                 "en": p.get("en") if isinstance(p.get("en"), str) else "",
-                "sourceTurns": [n for n in p.get("sourceTurns") or [] if isinstance(n, int)],
+                "sourceTurns": [n for n in p.get("sourceTurns") if isinstance(n, int)] if isinstance(p.get("sourceTurns"), list) else [],
             }
             for p in pages
         ]

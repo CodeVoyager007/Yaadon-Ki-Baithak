@@ -136,7 +136,7 @@ export default function SharePage() {
 
         {book === null && (
           <div className="mx-auto max-w-xl">
-            <BirdySays>This family book isn&apos;t available. The link may have been turned off.</BirdySays>
+            <BirdySays as="h1">This family book isn&apos;t available. The link may have been turned off.</BirdySays>
             <Link href="/" className="btn-lantern pixel-corners mt-6 inline-flex h-12 items-center px-6 font-extrabold">
               What is Baithak?
             </Link>
@@ -148,6 +148,7 @@ export default function SharePage() {
             <button type="button" onClick={() => setOpen(null)} className="mb-6 inline-flex items-center gap-1.5 font-bold text-lantern-soft hover:underline">
               <ArrowLeft size={16} /> All storybooks
             </button>
+            <h1 className="sr-only">{opened.chapter.title.en || opened.chapter.title.ur}</h1>
             <StoryBook stored={opened} elder={elderOf(opened.elderId)} family={book.familyName} />
             <BehindTheStory stored={opened} who={elderOf(opened.elderId) ? elderLabel(elderOf(opened.elderId)!) : "the storyteller"} />
           </>

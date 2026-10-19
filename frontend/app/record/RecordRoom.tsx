@@ -162,7 +162,8 @@ export function RecordRoom() {
   }
 
   async function giveConsent() {
-    if (!elder || consentDone.current) return;
+    // A second tap while the browser is still asking for the mic would leave it recording afterwards.
+    if (!elder || consentDone.current || rec.status === "asking") return;
     if (recordingConsent) {
       await finishConsent(true);
       return;
@@ -172,6 +173,10 @@ export function RecordRoom() {
     const started = await rec.start();
     if (!started) {
       await finishConsent(false);
+      return;
+    }
+    if (consentDone.current) {
+      await rec.stop();
       return;
     }
     consentTimer.current = window.setTimeout(() => void finishConsent(true), 3500);
@@ -196,8 +201,8 @@ export function RecordRoom() {
       setThoughts((list) => [...list, { id: newId(), decision, source }]);
       addTurn({ role: "birdy", text: q[lang], lang, at: new Date().toISOString() });
       if (decision.action === "wrap_up") {
-        void speak(q[lang], lang);
-        finish();
+        void finish(true);
+        void speak(q[lang], lang); // after finish(), so the thank-you is heard, not cut off
         return;
       }
       setQuestion(q);
@@ -278,10 +283,15 @@ export function RecordRoom() {
     }
   }
 
-  // A very long part is saved on its own, so one recording never grows past what can be sent.
+  // A very long part is saved on its own, so one recording never grows past what can be sent;
+  // while the story is being told, the next part starts straight away so nothing is missed.
   useEffect(() => {
     if (rec.status !== "recording") return;
-    const t = window.setTimeout(() => void toggleLamp(), MAX_PART_MS);
+    const t = window.setTimeout(async () => {
+      const telling = stage === "telling";
+      await toggleLamp();
+      if (telling) await rec.start();
+    }, MAX_PART_MS);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rec.status]);
@@ -301,7 +311,7 @@ export function RecordRoom() {
     await nextQuestion(true);
   }
 
-  async function finish() {
+  async function finish(keepVoice = false) {
     // "Stop for today" while talking keeps that last answer, then ends.
     if (rec.status === "recording") {
       try {
@@ -310,7 +320,7 @@ export function RecordRoom() {
         console.error("Error saving the last answer:", err);
       }
     }
-    stopSpeaking();
+    if (!keepVoice) stopSpeaking();
     const s = session.current;
     if (live && s && s.turns.some((t) => t.role === "elder")) {
       s.endedAt = new Date().toISOString();
@@ -330,6 +340,7 @@ export function RecordRoom() {
       </header>
 
       <main className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-5 pb-16 pt-8 text-center">
+        <h1 className="sr-only">{live ? `Recording a story with ${who}` : "Practice recording a story"}</h1>
         {phase === "loading" && <PixelLantern size={56} className="mt-24" />}
 
         {phase === "not-found" && (

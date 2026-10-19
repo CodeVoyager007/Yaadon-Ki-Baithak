@@ -54,7 +54,7 @@ class Signals:
     tired: bool
     skipped: bool
     mode: Mode = "interview"
-    clarifications: int = 0  # answers given after the story (clarify mode)
+    clarifications: int = 0  # questions Hudhud has asked since the story (clarify mode), answered or skipped
     told: bool = True  # clarify mode: the story has any words in it at all
 
     @property
@@ -71,7 +71,15 @@ class Rejection:
     reason: str
 
 
+def _asked_since_story(turns: list[Turn]) -> int:
+    """Hudhud says nothing while the story is told, so every question after the first story part is a
+    clarification, whether it was answered or skipped (counting answers would let skips loop forever)."""
+    first = next((i for i, t in enumerate(turns) if t.role == "elder"), None)
+    return 0 if first is None else sum(1 for t in turns[first:] if t.role == "birdy")
+
+
 def read_signals(turns: list[Turn], skipped: bool = False, mode: Mode = "interview", story_turns: int = 0) -> Signals:
+    """story_turns is accepted for older callers; the count comes from the conversation itself."""
     last = turns[-1].text if turns and turns[-1].role == "elder" else ""
     answers = sum(1 for t in turns if t.role == "elder")
     return Signals(
@@ -80,7 +88,7 @@ def read_signals(turns: list[Turn], skipped: bool = False, mode: Mode = "intervi
         tired=sounds_tired(last),
         skipped=skipped,
         mode=mode,
-        clarifications=max(0, answers - story_turns) if mode == "clarify" else 0,
+        clarifications=_asked_since_story(turns) if mode == "clarify" else 0,
         told=any(t.role == "elder" and t.text.strip() for t in turns),
     )
 

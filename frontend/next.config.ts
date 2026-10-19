@@ -25,7 +25,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${supabase}`,
   `media-src 'self' data: blob: ${supabase}`,
-  `connect-src 'self' ${supabase} ${supabase.replace(/^http/, "ws")} ${api}`,
+  // blob: and data: let the PDF maker read paintings kept on this device (nothing leaves the page).
+  `connect-src 'self' blob: data: ${supabase} ${supabase.replace(/^http/, "ws")} ${api}`,
   "font-src 'self' data:",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",

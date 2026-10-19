@@ -37,6 +37,14 @@ class Settings:
     gemini_key: str = field(default_factory=lambda: _env("GEMINI_API_KEY"))
     gemini_model: str = field(default_factory=lambda: _env("GEMINI_MODEL", "gemini-2.5-flash"))
     gemini_tts_model: str = field(default_factory=lambda: _env("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts"))
+    # Free-tier quotas are per model, so when one model runs out the next one still answers.
+    gemini_fallback_models: tuple[str, ...] = field(
+        default_factory=lambda: tuple(
+            m.strip() for m in _env("GEMINI_FALLBACK_MODELS", "gemini-2.5-flash-lite,gemini-2.0-flash").split(",") if m.strip()
+        )
+    )
+    # Transcribing every answer would eat the writer's quota; a lighter model hears just as well.
+    gemini_transcribe_model: str = field(default_factory=lambda: _env("GEMINI_TRANSCRIBE_MODEL", "gemini-2.5-flash-lite"))
 
     cloudflare_account_id: str = field(default_factory=lambda: _env("CLOUDFLARE_ACCOUNT_ID"))
     cloudflare_api_token: str = field(default_factory=lambda: _env("CLOUDFLARE_API_TOKEN"))

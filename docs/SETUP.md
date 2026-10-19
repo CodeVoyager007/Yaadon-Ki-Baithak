@@ -22,7 +22,7 @@ See the root [README](../README.md#quick-start): the Python backend on port 8000
 | `NEXT_PUBLIC_API_URL` | The backend's origin, e.g. `https://you-baithak-api.hf.space` |
 | `NEXT_PUBLIC_SITE_URL` | WhatsApp/social link previews |
 
-**Backend** (`backend/.env`, and the host's secrets): `SUPABASE_URL`, `SUPABASE_ANON_KEY` (same project), `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ALLOWED_ORIGINS`, `TRUSTED_PROXY_HOPS` (0 locally), and `APP_ENV=development` for local runs only. Details: [backend/README.md](../backend/README.md).
+**Backend** (`backend/.env`, and the host's secrets): `SUPABASE_URL`, `SUPABASE_ANON_KEY` (same project), `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ALLOWED_ORIGINS`, `TRUSTED_PROXY_HOPS` (0 locally), and `APP_ENV=development` for local runs only. Free Gemini keys run out daily: put extra keys in `GEMINI_API_KEYS` (comma separated), and when a model is out of quota the backend tries `GEMINI_FALLBACK_MODELS` (default `gemini-2.5-flash-lite,gemini-2.0-flash`). Details: [backend/README.md](../backend/README.md).
 
 AI and service-role keys exist only on the backend. Nothing secret ever gets a `NEXT_PUBLIC_` prefix.
 

@@ -17,7 +17,7 @@ import type { Elder, Theme } from "./book-store";
 import { elderLabel } from "./book-store";
 import type { Turn } from "./chapter-store";
 import { MAX_PAGES } from "./book-pages";
-import { PRACTICE_CLARIFY, PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
+import { DRAFT_SCENES, PRACTICE_CLARIFY, PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
 import { hasSupabase, supabaseBrowser } from "./supabase/client";
 
 export type Source = "ai" | "stand-in";
@@ -86,7 +86,9 @@ export async function askNext(elder: Elder, theme: Theme, turns: Turn[], skipped
   if (ai) return { decision: ai, source: "ai" as Source };
 
   if (turnMode.mode === "clarify") {
-    const asked = Math.max(0, turns.filter((t) => t.role === "elder").length - turnMode.storyTurns);
+    // Every question after the story counts, answered or skipped, so "Don't know" can't loop.
+    const firstAnswer = turns.findIndex((t) => t.role === "elder");
+    const asked = firstAnswer < 0 ? 0 : turns.slice(firstAnswer).filter((t) => t.role === "birdy").length;
     if (asked >= PRACTICE_CLARIFY.length) {
       return {
         source: "stand-in" as Source,
@@ -207,27 +209,86 @@ export async function illustrateOnly(
   return { imageUrl: null };
 }
 
-function answersToPages(answers: Turn[]) {
-  const per = Math.ceil(answers.length / MAX_PAGES) || 1;
-  const pages = [];
-  for (let i = 0; i < answers.length; i += per) {
-    const group = answers.slice(i, i + per);
-    pages.push({
-      ur: group.filter((t) => t.lang === "ur").map((t) => t.text.trim()).join("\n\n"),
-      en: group.filter((t) => t.lang === "en").map((t) => t.text.trim()).join("\n\n"),
-      sourceTurns: group.map((t) => t.index),
-    });
-  }
-  return pages;
+/** Words a page holds before it turns, about what fits under a painting. */
+const WORDS_PER_PAGE = 70;
+
+/** Splits one answer at sentence ends (Urdu ۔ ؟ and English . ? !), keeping the marks. */
+function sentences(text: string) {
+  return (text.match(/[^۔؟?.!\n]+[۔؟?.!]*["'”’)]*/g) ?? []).map((s) => s.trim()).filter(Boolean);
 }
 
-/** Stand-in chapter: the elder's own words, in order, nothing added. */
+const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
+
+/** Transcripts often arrive without punctuation; cut a run-on "sentence" into page-sized pieces. */
+function pieces(text: string) {
+  return sentences(text).flatMap((s) => {
+    const w = s.split(/\s+/).filter(Boolean);
+    if (w.length <= WORDS_PER_PAGE) return [s];
+    const out: string[] = [];
+    for (let i = 0; i < w.length; i += WORDS_PER_PAGE) out.push(w.slice(i, i + WORDS_PER_PAGE).join(" "));
+    return out;
+  });
+}
+
+/**
+ * The elder's answers laid out as book pages: whole sentences, about a painting's worth of words
+ * per page, never more than MAX_PAGES (a long telling just gets fuller pages). Each page keeps
+ * the answers it came from, so it can be traced back to the recording.
+ */
+function answersToPages(answers: Turn[], scenes: string[]) {
+  const parts = answers.flatMap((t) => pieces(t.text).map((text) => ({ text, lang: t.lang, index: t.index })));
+  const total = parts.reduce((n, p) => n + words(p.text), 0);
+  const target = Math.max(WORDS_PER_PAGE, Math.ceil(total / MAX_PAGES));
+  const groups: (typeof parts)[] = [];
+  let current: typeof parts = [];
+  let count = 0;
+  for (const piece of parts) {
+    if (current.length && count + words(piece.text) > target * 1.2 && groups.length < MAX_PAGES - 1) {
+      groups.push(current);
+      current = [];
+      count = 0;
+    }
+    current.push(piece);
+    count += words(piece.text);
+  }
+  if (current.length) groups.push(current);
+
+  const join = (group: typeof parts, lang: "ur" | "en") => {
+    // A new answer starts a new paragraph; sentences of one answer run on.
+    const out: string[] = [];
+    let last: number | undefined;
+    for (const p of group.filter((g) => g.lang === lang)) {
+      if (out.length && p.index === last) out[out.length - 1] += ` ${p.text}`;
+      else out.push(p.text);
+      last = p.index;
+    }
+    return out.join("\n\n");
+  };
+  return groups.map((group, i) => ({
+    ur: join(group, "ur"),
+    en: join(group, "en"),
+    scene: scenes[i % scenes.length],
+    sourceTurns: [...new Set(group.map((p) => p.index))],
+  }));
+}
+
+/** A line worth putting on the title page: one whole sentence, short enough to read at a glance. */
+function shortQuote(answers: Turn[]) {
+  const all = answers.flatMap((t) => sentences(t.text).map((text) => ({ text, index: t.index })));
+  const fits = all.filter((s) => words(s.text) >= 6 && s.text.length <= 160);
+  const pick = (fits.length ? fits : all).sort((a, b) => b.text.length - a.text.length)[0];
+  if (!pick) return undefined;
+  const text = pick.text.length > 160 ? `${pick.text.slice(0, 157).replace(/\s+\S*$/, "")}…` : pick.text;
+  return { text, turnIndex: pick.index };
+}
+
+/** Stand-in chapter: the elder's own words, in order, nothing added, laid out page by page. */
 function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
   const answers = turns.filter((t) => t.role === "elder" && t.text.trim());
   const ur = answers.filter((t) => t.lang === "ur").map((t) => t.text.trim());
   const en = answers.filter((t) => t.lang === "en").map((t) => t.text.trim());
-  const longest = [...answers].sort((a, b) => b.text.length - a.text.length)[0];
   const themeInfo = THEMES.find((t) => t.id === theme);
+  const scenes = DRAFT_SCENES[theme] ?? DRAFT_SCENES["Free talk"];
   const who = elderLabel(elder);
   // Urdu title uses the relation in Urdu, never an English-letter name inside Nastaliq.
   const urWho = { Nani: "نانی", Nana: "نانا", Dadi: "دادی", Dada: "دادا", Other: "ان" }[elder.relation];
@@ -238,10 +299,10 @@ function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
       ur: theme === "Free talk" || !themeInfo ? `${urWho} کی یادیں` : `${urWho} کی یادیں: ${themeInfo.ur}`,
     },
     body: { ur: ur.join("\n\n"), en: en.join("\n\n") },
-    // One page per answer, so the draft still reads as a book (long sittings share pages).
-    pages: answersToPages(answers),
+    pages: answersToPages(answers, scenes),
     sourceTurns: answers.map((t) => t.index),
-    pullQuote: longest ? { text: longest.text.trim(), turnIndex: longest.index } : undefined,
+    pullQuote: shortQuote(answers),
+    scene: scenes[0],
     year: theme === "1947" ? "1947" : undefined,
     place: elder.birthplace,
   };

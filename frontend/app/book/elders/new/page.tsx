@@ -28,7 +28,7 @@ export default function NewElderPage() {
       <AppBackdrop />
       <AppHeader back={{ href: "/book", label: "Family book" }} />
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
-        <BirdySays mood="listening">Who else has stories to tell?</BirdySays>
+        <BirdySays mood="listening" as="h1">Who else has stories to tell?</BirdySays>
         <section className="glass-night mt-6 rounded-[32px] p-6 sm:p-9">
           <ElderFields value={elder} onChange={setElder} autoFocus />
           <div className="mt-9 flex items-center justify-between gap-4">

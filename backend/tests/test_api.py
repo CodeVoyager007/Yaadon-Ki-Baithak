@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -237,8 +239,6 @@ def test_illustrate_paints_from_a_clamped_brief_only(env, api, monkeypatch):
 
 
 def test_painter_sends_only_flux_inputs_and_retries_a_rejected_request(env, monkeypatch):
-    import asyncio
-
     from agents import illustration_request, Bilingual
     from app.providers import cloudflare
 
@@ -263,3 +263,51 @@ def test_paintings_are_labelled_by_their_own_bytes():
 
     assert image_type(b"\xff\xd8\xff\xe0rest") == ("image/jpeg", "jpg")
     assert image_type(b"\x89PNG\r\n") == ("image/png", "png")
+
+
+class _Res:
+    def __init__(self, status, body=None):
+        self.status_code = status
+        self._body = body or {}
+
+    def json(self):
+        return self._body
+
+
+def _fake_gemini_http(monkeypatch, answer):
+    """Record which model and key each Gemini call used; `answer(model, key)` gives the status."""
+    calls = []
+
+    class FakeClient:
+        async def post(self, url, headers, json, timeout):
+            model = url.rsplit("/", 1)[1].split(":")[0]
+            calls.append((model, headers["x-goog-api-key"]))
+            status = answer(model, headers["x-goog-api-key"])
+            reply = {"candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]}
+            return _Res(status, reply if status == 200 else None)
+
+    monkeypatch.setattr(gemini, "client", lambda: FakeClient())
+    return calls
+
+
+def test_an_exhausted_model_falls_back_to_the_next_free_one(env, monkeypatch):
+    env(GEMINI_API_KEY="k1", GEMINI_API_KEYS="k1,k2", GEMINI_MODEL="main", GEMINI_FALLBACK_MODELS="lite,old")
+    calls = _fake_gemini_http(monkeypatch, lambda model, key: 200 if model == "lite" else 429)
+    assert asyncio.run(gemini.generate_json("s", "u")) == {"ok": True}
+    # Both keys on the main model first, then the first fallback answers.
+    assert calls == [("main", "k1"), ("main", "k2"), ("lite", "k1")]
+
+
+def test_a_bad_request_is_not_retried_on_every_model(env, monkeypatch):
+    env(GEMINI_API_KEY="k1", GEMINI_MODEL="main", GEMINI_FALLBACK_MODELS="lite")
+    calls = _fake_gemini_http(monkeypatch, lambda model, key: 400)
+    with pytest.raises(gemini.GeminiError):
+        asyncio.run(gemini.generate_json("s", "u"))
+    assert calls == [("main", "k1")]
+
+
+def test_transcription_uses_the_light_model_first(env, monkeypatch):
+    env(GEMINI_API_KEY="k1", GEMINI_MODEL="main", GEMINI_TRANSCRIBE_MODEL="lite")
+    calls = _fake_gemini_http(monkeypatch, lambda model, key: 200)
+    asyncio.run(gemini.transcribe(b"\0", "audio/webm", "ur"))
+    assert calls[0][0] == "lite"

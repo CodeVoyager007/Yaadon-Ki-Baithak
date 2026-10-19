@@ -6,7 +6,7 @@
  */
 import { SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import type { StoredChapter } from "./chapter-store";
-import type { Page } from "./types";
+import type { Chapter, Page } from "./types";
 
 export const MAX_PAGES = 8;
 
@@ -59,4 +59,10 @@ export function bookPages(stored: StoredChapter): BookPage[] {
 /** The cover: the book's own cover painting, else its first page's, else the theme's picture. */
 export function coverImage(stored: StoredChapter) {
   return stored.imageUrl ?? stored.pageImages?.find(Boolean) ?? SCENE_IMAGES[stored.scene].src;
+}
+
+/** The pull quote, if it's short enough to be a quote (older drafts used a whole answer). */
+export function shownQuote(chapter: Chapter) {
+  const q = chapter.pullQuote;
+  return q && q.text.trim() && q.text.length <= 220 ? q : undefined;
 }

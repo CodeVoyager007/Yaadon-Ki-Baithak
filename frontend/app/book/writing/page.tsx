@@ -9,7 +9,7 @@ import { AppHeader } from "@/components/app/AppHeader";
 import { BookNav } from "@/components/app/BookNav";
 import { BirdySays } from "@/components/app/SpeechBubble";
 import { PixelLantern } from "@/components/effects/PixelLantern";
-import { writeAndIllustrate } from "@/lib/api";
+import { illustrateOnly, writeAndIllustrate } from "@/lib/api";
 import { bookPages } from "@/lib/book-pages";
 import { keepImage } from "@/lib/image-store";
 import { elderLabel, getElder, loadBook, newId } from "@/lib/book-store";
@@ -103,18 +103,35 @@ function Writing() {
       mark(1, "done");
 
       mark(2, "working");
-      await pause(400);
+      let paintedUrls = written.pageImages;
+      let coverUrl = written.imageUrl;
+      if (written.source !== "ai") {
+        // The writer was out, but the painter needn't be: paint the draft from its theme's scenes.
+        // Only the scenes and title go to the painter, never the elder's words.
+        const art = await illustrateOnly(written.chapter, seed);
+        paintedUrls = art.pageImages ?? [];
+        coverUrl = art.imageUrl ?? undefined;
+      } else {
+        await pause(400);
+      }
       const pageCount = written.chapter.pages?.length ?? 0;
-      const painted = written.pageImages.filter(Boolean).length;
+      const painted = paintedUrls.filter(Boolean).length;
       say(
         painted
           ? `${painted} of ${pageCount} pages painted in the family book's style.`
           : "Using themed paintings for now — the illustrator isn't available.",
       );
       // Paintings made without cloud storage are kept in this browser's image store, not localStorage.
-      const pageImages = await Promise.all(written.pageImages.map((u) => keepImage(u)));
-      const cover = (await keepImage(written.imageUrl)) ?? pageImages.find(Boolean) ?? undefined;
+      const pageImages = await Promise.all(paintedUrls.map((u) => keepImage(u)));
+      const cover = (await keepImage(coverUrl)) ?? pageImages.find(Boolean) ?? undefined;
       mark(2, "done");
+
+      // Another tab may have finished this same recording while we were writing.
+      const already = getChapterForSession(session.id);
+      if (already) {
+        router.replace(`/book/chapter/${already.id}`);
+        return;
+      }
 
       mark(3, "working");
       const themeInfo = THEMES.find((t) => t.id === session.theme) ?? THEMES[THEMES.length - 1];
@@ -145,7 +162,7 @@ function Writing() {
       <AppBackdrop />
       <AppHeader back={{ href: "/book", label: "Family book" }} />
       <main className="mx-auto max-w-2xl px-5 pb-20 pt-10">
-        <BirdySays mood={doneId ? "happy" : "listening"}>
+        <BirdySays mood={doneId ? "happy" : "listening"} as="h1">
           {failed ?? (doneId ? `${who}'s storybook is ready.` : `Turning ${who}'s story into a storybook.`)}
         </BirdySays>
 

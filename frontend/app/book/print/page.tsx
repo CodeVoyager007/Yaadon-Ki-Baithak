@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Printer } from "lucide-react";
 import { StoryImage } from "@/components/book/StoryImage";
 import { SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { PixelLantern } from "@/components/effects/PixelLantern";
-import { bookPages, coverImage } from "@/lib/book-pages";
+import { bookPages, coverImage, shownQuote } from "@/lib/book-pages";
 import { elderLabel, loadBook, type FamilyBook } from "@/lib/book-store";
 import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { syncBook } from "@/lib/data/sync";
+import { downloadPdf, pdfName } from "@/lib/pdf";
 
 export default function PrintPage() {
   return (
@@ -30,16 +31,20 @@ function longDate(iso: string) {
 }
 
 /**
- * The family book laid out as paper pages: a cover, then one chapter per
- * page, Urdu and English. The browser's print window saves it as a PDF,
- * which keeps the Nastaliq shaped properly (PDF libraries can't).
- * `?chapter=<id>` prints a single chapter.
+ * The family book laid out as paper pages: a cover, then each storybook's
+ * title page and pages, Urdu and English. Once the paintings have loaded the
+ * pages are turned into a PDF file and downloaded straight away, no print
+ * window. `?chapter=<id>` makes the PDF of a single storybook.
  */
 function PrintBook() {
   const params = useSearchParams();
   const [book, setBook] = useState<FamilyBook | null | undefined>(undefined);
   const [chapters, setChapters] = useState<StoredChapter[]>([]);
-  const printed = useRef(false);
+  const started = useRef(false);
+  const [status, setStatus] = useState<{ state: "preparing" | "making" | "done" | "failed"; note: string }>({
+    state: "preparing",
+    note: "Getting the paintings ready…",
+  });
   const only = params.get("chapter");
 
   useEffect(() => {
@@ -55,10 +60,28 @@ function PrintBook() {
     };
   }, [only]);
 
-  // Open the save-as-PDF window once the fonts and paintings are ready.
+  const fileName = () => {
+    const title = only && chapters[0] ? chapters[0].chapter.title.en || chapters[0].chapter.title.ur : undefined;
+    return pdfName(book?.familyName, title);
+  };
+
+  const makePdf = async () => {
+    const pages = [...document.querySelectorAll<HTMLElement>(".print-book .print-page")];
+    setStatus({ state: "making", note: `Making the PDF… page 1 of ${pages.length}` });
+    try {
+      await downloadPdf(pages, fileName(), (done, total) =>
+        setStatus({ state: "making", note: `Making the PDF… page ${Math.min(done + 1, total)} of ${total}` }),
+      );
+      setStatus({ state: "done", note: "Your PDF has downloaded. Look in your Downloads folder." });
+    } catch {
+      setStatus({ state: "failed", note: "We couldn't make the PDF here. Try again, or use Print and choose “Save as PDF”." });
+    }
+  };
+
+  // Make and download the PDF once the fonts and paintings are ready.
   useEffect(() => {
-    if (!book || !chapters.length || printed.current) return;
-    printed.current = true;
+    if (!book || !chapters.length || started.current) return;
+    started.current = true;
     let live = true;
     const images = [...document.querySelectorAll<HTMLImageElement>(".print-book img")];
     const loaded = images.map((img) =>
@@ -71,11 +94,16 @@ function PrintBook() {
     );
     const timeout = new Promise((r) => setTimeout(r, 8000));
     // A short pause first lets paintings kept on this device swap in for their placeholders.
-    const settle = new Promise((r) => setTimeout(r, 400));
-    void Promise.race([Promise.all([document.fonts.ready, settle, ...loaded]), timeout]).then(() => live && window.print());
+    const settle = new Promise((r) => setTimeout(r, 600));
+    void Promise.race([Promise.all([document.fonts.ready, settle, ...loaded]), timeout]).then(() => {
+      if (live) void makePdf();
+    });
     return () => {
       live = false;
+      started.current = false;
     };
+    // makePdf reads the current book and chapters; it only needs to run when they arrive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book, chapters]);
 
   if (book === undefined) {
@@ -96,15 +124,29 @@ function PrintBook() {
         <Link href={only ? `/book/chapter/${only}` : "/book"} className="inline-flex items-center gap-2 text-sm font-bold text-moon/80 hover:text-moon">
           <ArrowLeft size={16} /> Back
         </Link>
-        <p className="text-sm text-moon/70">In the print window, choose &ldquo;Save as PDF&rdquo;.</p>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          disabled={!chapters.length}
-          className="btn-lantern pixel-corners inline-flex h-11 items-center gap-2 px-5 font-extrabold disabled:opacity-50"
-        >
-          <Download size={17} /> Save as PDF
-        </button>
+        {chapters.length > 0 && (
+          <p className="text-sm text-moon/80" role="status" aria-live="polite">
+            {status.note}
+          </p>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            disabled={!chapters.length}
+            className="inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon/80 hover:text-moon disabled:opacity-50"
+          >
+            <Printer size={16} /> Print
+          </button>
+          <button
+            type="button"
+            onClick={() => void makePdf()}
+            disabled={!chapters.length || status.state === "making" || status.state === "preparing"}
+            className="btn-lantern pixel-corners inline-flex h-11 items-center gap-2 px-5 font-extrabold disabled:opacity-50"
+          >
+            <Download size={17} /> {status.state === "done" ? "Download again" : "Download PDF"}
+          </button>
+        </div>
       </div>
 
       {!book || !chapters.length ? (
@@ -148,6 +190,7 @@ function PrintBook() {
 function PrintChapter({ stored, teller, family }: { stored: StoredChapter; teller: string; family: string }) {
   const { chapter } = stored;
   const pages = bookPages(stored);
+  const quote = shownQuote(chapter);
   const coverFallback = SCENE_IMAGES[stored.scene].src;
 
   return (
@@ -168,10 +211,10 @@ function PrintChapter({ stored, teller, family }: { stored: StoredChapter; telle
         <p className="mt-1 text-sm text-[#7a5a3a]">
           Recorded {longDate(stored.createdAt)} · {voiceLength(stored.turns)} of voice{stored.draft ? " · draft, the story word for word" : ""}
         </p>
-        {chapter.pullQuote && (
+        {quote && (
           <blockquote className="mt-8 max-w-md border-s-4 border-[#c8553d] ps-4 text-start" dir="auto">
-            <p className={/[\u0600-\u06FF]/.test(chapter.pullQuote.text) ? "font-urdu text-xl leading-[2.1]" : "font-display text-xl italic"}>
-              &ldquo;{chapter.pullQuote.text}&rdquo;
+            <p className={/[\u0600-\u06FF]/.test(quote.text) ? "font-urdu text-xl leading-[2.1]" : "font-display text-xl italic"}>
+              &ldquo;{quote.text}&rdquo;
             </p>
           </blockquote>
         )}

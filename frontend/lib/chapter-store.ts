@@ -52,6 +52,8 @@ export type StoredChapter = {
 
 const SESSIONS = "baithak-sessions";
 const CHAPTERS = "baithak-chapters";
+/** Books deleted on this device, so a restore never brings one back if its cloud delete didn't go through. */
+const DELETED = "baithak-deleted";
 
 function read<T>(key: string): T[] {
   if (typeof window === "undefined") return [];
@@ -98,6 +100,7 @@ export function deleteChapter(id: string) {
     CHAPTERS,
     read<StoredChapter>(CHAPTERS).filter((c) => c.id !== id),
   );
+  write(DELETED, [...read<string>(DELETED).filter((x) => x !== id), id].slice(-500));
 }
 
 /**
@@ -110,11 +113,17 @@ export function restoreChapters(sessions: Session[], chapters: StoredChapter[]) 
   const haveSession = new Set(localSessions.map((s) => s.id));
   write(SESSIONS, [...localSessions, ...sessions.filter((s) => !haveSession.has(s.id))]);
 
-  const fresh = new Map(chapters.map((c) => [c.id, c]));
+  const deleted = new Set(read<string>(DELETED));
+  const fresh = new Map(chapters.filter((c) => !deleted.has(c.id)).map((c) => [c.id, c]));
+  // Cloud paintings are signed links that expire after a week; the freshly signed ones replace them.
+  const signed = (url: string | null | undefined) => !url || url.includes("/storage/v1/object/sign/");
   const local = read<StoredChapter>(CHAPTERS).map((c) => {
     const remote = fresh.get(c.id);
     fresh.delete(c.id);
-    return remote?.imageUrl && (!c.imageUrl || c.imageUrl.includes("/storage/v1/object/sign/")) ? { ...c, imageUrl: remote.imageUrl } : c;
+    if (!remote) return c;
+    const imageUrl = remote.imageUrl && signed(c.imageUrl) ? remote.imageUrl : c.imageUrl;
+    const pageImages = c.pageImages?.map((u, i) => (signed(u) && remote.pageImages?.[i] ? remote.pageImages[i] : u)) ?? remote.pageImages;
+    return { ...c, imageUrl, pageImages };
   });
   write(CHAPTERS, [...local, ...fresh.values()]);
 }

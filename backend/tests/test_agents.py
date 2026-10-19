@@ -196,3 +196,12 @@ def test_a_plain_body_is_cut_into_pages():
     chapter = parse_chapter({**CHAPTER, "body": {"ur": "", "en": paragraphs}}, [said("hello", 1)])
     assert 1 < len(chapter.pages) <= 8
     assert "Paragraph 11." in chapter.pages[-1].en
+
+
+
+def test_skipped_clarifications_still_count_towards_the_cap():
+    # Three questions asked after the story, all skipped: no answers, but the cap is reached.
+    turns = [birdy("Tell us"), STORY, birdy("who 1?"), birdy("who 2?"), birdy("who 3?")]
+    model = FakeModel()
+    decision, signals = run(run_interviewer(model, ELDER, "1947", turns, skipped=True, mode="clarify", story_turns=1))
+    assert signals.clarifications == MAX_CLARIFY and decision.action == "wrap_up" and not model.calls

@@ -1,13 +1,13 @@
 "use client";
 
-import { animate, motion, useMotionValue, useReducedMotion, useTransform, type MotionValue } from "motion/react";
+import { animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useTransform, type MotionValue } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AJRAK_BORDER } from "@/components/app/AppBackdrop";
 import { VoiceClip } from "@/components/app/VoiceClip";
 import { SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { elderLabel, type Elder } from "@/lib/book-store";
-import { bookPages, coverImage, type BookPage } from "@/lib/book-pages";
+import { bookPages, coverImage, shownQuote, type BookPage } from "@/lib/book-pages";
 import { voiceLength, type StoredChapter, type Turn } from "@/lib/chapter-store";
 import { StoryImage } from "./StoryImage";
 
@@ -76,7 +76,8 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
   const { chapter, turns } = stored;
   const who = elder ? elderLabel(elder) : "their storyteller";
   const pages = useMemo(() => bookPages(stored), [stored]);
-  const quoteTurn = chapter.pullQuote ? turns.find((t) => t.index === chapter.pullQuote!.turnIndex) : undefined;
+  const quote = shownQuote(chapter);
+  const quoteTurn = quote ? turns.find((t) => t.index === quote.turnIndex) : undefined;
   const date = (() => {
     const d = new Date(stored.createdAt);
     return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -135,11 +136,11 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
       </p>
       <div className="my-5 h-px w-24 bg-[#c9ad7f]" />
       {chapter.title.ur && (
-        <h1 className="font-urdu text-3xl leading-[2] text-[#24160e] sm:text-4xl sm:leading-[2]" dir="rtl" lang="ur">
+        <p className="font-urdu text-3xl leading-[2] text-[#24160e] sm:text-4xl sm:leading-[2]" dir="rtl" lang="ur">
           {chapter.title.ur}
-        </h1>
+        </p>
       )}
-      <h1 className="font-display mt-1 text-3xl leading-tight text-[#24160e] sm:text-4xl">{chapter.title.en}</h1>
+      <p className="font-display mt-1 text-3xl leading-tight text-[#24160e] sm:text-4xl">{chapter.title.en}</p>
       <p className="mt-5 text-[#5a4636]">
         Told by {who}
         {chapter.place ? `, ${chapter.place}` : ""}
@@ -196,13 +197,13 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
 
   const picture = (p: BookPage) => <StoryImage src={p.image} fallback={p.fallback} className="h-full w-full object-cover" />;
 
-  const quotePage = chapter.pullQuote ? (
+  const quotePage = quote ? (
     <div className="flex h-full flex-col items-center justify-center px-8 py-10 text-center">
       <blockquote
-        className={isUrdu(chapter.pullQuote.text) ? "font-urdu text-2xl leading-[2.2] text-[#9e2b25] sm:text-3xl" : "font-display text-2xl italic leading-snug text-[#9e2b25]"}
+        className={isUrdu(quote.text) ? "font-urdu text-2xl leading-[2.2] text-[#9e2b25] sm:text-3xl" : "font-display text-2xl italic leading-snug text-[#9e2b25]"}
         dir="auto"
       >
-        «{chapter.pullQuote.text}»
+        «{quote.text}»
       </blockquote>
       <p className="mt-2 text-sm text-[#7a5a3a]">{who}, in their own words</p>
       <div className="mt-5 w-full max-w-xs">
@@ -257,8 +258,8 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
         "end",
         "The End",
         <div className="flex h-full flex-col justify-center">
-          {chapter.pullQuote && <div className="h-1/2">{quotePage}</div>}
-          <div className={chapter.pullQuote ? "h-1/2" : "h-full"}>{endPage}</div>
+          {quote && <div className="h-1/2">{quotePage}</div>}
+          <div className={quote ? "h-1/2" : "h-full"}>{endPage}</div>
         </div>,
       ),
     ];
@@ -267,6 +268,10 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
   }, [wide, stored, pages, lang, who, date, family, quoteTurn]);
 
   const last = views.length - 1;
+  // An edit can make the book shorter than the page we're on.
+  useEffect(() => {
+    if (at > last) setAt(last);
+  }, [at, last]);
   // A new layout (rotating a tablet) starts again from the cover.
   useEffect(() => {
     setAt(0);
@@ -279,6 +284,31 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
     (dir: 1 | -1) => (wide ? (dir > 0 ? { start: 0, end: -180 } : { start: 0, end: 180 }) : dir > 0 ? { start: 0, end: -180 } : { start: -180, end: 0 }),
     [wide],
   );
+
+  // Closed, the book sits centred; open, it spreads across. Set at the very start of a turn too,
+  // so the first frame doesn't jump.
+  const bookX = useMotionValue("0%");
+  const xAt = useCallback(
+    (f: Flip | null, p: number) => {
+      if (!wide || !f) return "0%";
+      const fromX = f.from === 0 ? -25 : 0;
+      const toX = f.to === 0 ? -25 : 0;
+      return `${fromX + (toX - fromX) * p}%`;
+    },
+    [wide],
+  );
+  useMotionValueEvent(angle, "change", (a) => bookX.set(xAt(flipRef.current, progressOf(a, flipRef.current))));
+  const startFlip = useCallback(
+    (f: Flip) => {
+      flipRef.current = f;
+      angle.set(f.start);
+      bookX.set(xAt(f, 0));
+      setFlip(f);
+    },
+    [angle, bookX, xAt],
+  );
+  // Set while a long jump lands on its last page, so another turn can't start from the wrong place.
+  const landing = useRef(false);
 
   const settle = useCallback(
     (f: Flip, commit: boolean, fromProgress: number) => {
@@ -294,7 +324,7 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
 
   const go = useCallback(
     (target: number) => {
-      if (flipRef.current || target < 0 || target > last || target === at) return;
+      if (flipRef.current || landing.current || target < 0 || target > last || target === at) return;
       if (reduce) {
         setAt(target);
         return;
@@ -307,18 +337,23 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
       if (from !== at) setAt(from);
       const dir: 1 | -1 = to > from ? 1 : -1;
       const f: Flip = { from, to, dir, ...angles(dir) };
-      angle.set(f.start);
-      setFlip(f);
+      startFlip(f);
       requestAnimationFrame(() => {
         void animate(angle, f.end, { duration: TURN_S, ease: [0.45, 0.05, 0.25, 1] }).then(() => {
           setAt(to);
           setFlip(null);
           angle.set(0);
-          if (to !== target) requestAnimationFrame(() => setAt(target));
+          if (to !== target) {
+            landing.current = true;
+            requestAnimationFrame(() => {
+              setAt(target);
+              landing.current = false;
+            });
+          }
         });
       });
     },
-    [angle, angles, at, last, reduce],
+    [angle, angles, at, last, reduce, startFlip],
   );
 
   useEffect(() => {
@@ -334,7 +369,7 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
 
   // ---- turning by hand ----
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    if (reduce || flipRef.current || e.button > 0) return;
+    if (reduce || flipRef.current || landing.current || e.button > 0) return;
     if ((e.target as HTMLElement).closest("button, a, input, textarea, [role=tab]")) return;
     const rect = area.current?.getBoundingClientRect();
     if (!rect) return;
@@ -346,6 +381,11 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
     const d = drag.current;
     const rect = area.current?.getBoundingClientRect();
     if (!d || !rect) return;
+    // The mouse button came up outside the window: finish the turn instead of following the pointer.
+    if (e.pointerType === "mouse" && e.buttons === 0) {
+      onPointerUp(e);
+      return;
+    }
     const dx = e.clientX - d.x;
     if (!d.started) {
       if (Math.abs(dx) < 10) return;
@@ -359,9 +399,7 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
       }
       d.started = true;
       e.currentTarget.setPointerCapture(e.pointerId);
-      const f: Flip = { from: at, to, dir, ...angles(dir) };
-      angle.set(f.start);
-      setFlip(f);
+      startFlip({ from: at, to, dir, ...angles(dir) });
     }
     const f = flipRef.current;
     if (!f) return;
@@ -383,19 +421,21 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
     settle(f, p > 0.45 || flick, p);
   }
 
+  // The system took the pointer away (a call, a scroll gesture): the page falls back, never turns.
+  function onPointerCancel() {
+    const d = drag.current;
+    drag.current = null;
+    const f = flipRef.current;
+    if (!d?.started || !f) return;
+    settle(f, false, progressOf(angle.get(), f));
+  }
+
   // ---- what is drawn ----
   const progress = useTransform(angle, (a) => progressOf(a, flipRef.current));
   const shadeFront = useTransform(progress, [0, 0.5], [0, 0.45]);
   const shadeBack = useTransform(progress, [0.5, 1], [0.35, 0]);
   const castShadow = useTransform(progress, (p) => Math.sin(p * Math.PI) * 0.55);
-  // Closed, the book sits centred; open, it spreads across. The left board appears as the cover lands on it.
-  const bookX = useTransform(progress, (p) => {
-    const f = flipRef.current;
-    if (!wide || !f) return "0%";
-    const fromX = f.from === 0 ? -25 : 0;
-    const toX = f.to === 0 ? -25 : 0;
-    return `${fromX + (toX - fromX) * p}%`;
-  });
+  // The left board appears as the cover lands on it.
   const leftBoard = useTransform(progress, (p) => {
     const f = flipRef.current;
     if (!f) return at === 0 ? 0 : 1;
@@ -487,7 +527,7 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={onPointerCancel}
         className={`relative mx-auto touch-pan-y ${wide ? "h-[clamp(440px,calc(100svh-290px),660px)] max-w-[1120px]" : "h-[min(640px,calc(100svh-230px))] min-h-[480px] max-w-[460px]"} ${flip ? "cursor-grabbing" : "cursor-grab"}`}
       >
         {wide ? (
@@ -562,7 +602,7 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
         </button>
         <div className="flex flex-col items-center gap-2">
           <p className="text-sm font-bold text-moon/80" aria-live="polite">
-            {views[shown].label}
+            {v(shown).label}
           </p>
           <div className="flex flex-wrap justify-center gap-1.5">
             {views.map((s, i) => (
