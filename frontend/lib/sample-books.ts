@@ -4,14 +4,23 @@
  * recordings; the page says so. The folk tales are retold in our own words.
  */
 import type { StaticImageData } from "next/image";
-import nightPainting from "@/components/scene/night-painting.webp";
-import sceneDholki from "@/components/illustrations/scenes/dholki.webp";
-import sceneDoorway from "@/components/illustrations/scenes/doorway.webp";
-import sceneEid from "@/components/illustrations/scenes/eid.webp";
-import sceneRiver from "@/components/illustrations/scenes/river.webp";
-import trailerDoorway from "@/components/illustrations/trailer/doorway.webp";
 import trailerListen from "@/components/illustrations/trailer/listen.webp";
-import trailerRiver from "@/components/illustrations/trailer/river.webp";
+import umroAyyar2 from "@/components/illustrations/tales/pages/umro-ayyar-2.webp";
+import umroAyyar3 from "@/components/illustrations/tales/pages/umro-ayyar-3.webp";
+import aliBaba from "@/components/illustrations/tales/ali-baba.webp";
+import aliBaba2 from "@/components/illustrations/tales/pages/ali-baba-2.webp";
+import aliBaba3 from "@/components/illustrations/tales/pages/ali-baba-3.webp";
+import gulBakawali from "@/components/illustrations/tales/gul-bakawali.webp";
+import gulBakawali2 from "@/components/illustrations/tales/pages/gul-bakawali-2.webp";
+import gulBakawali3 from "@/components/illustrations/tales/pages/gul-bakawali-3.webp";
+import hatimTai from "@/components/illustrations/tales/hatim-tai.webp";
+import hatimTai2 from "@/components/illustrations/tales/pages/hatim-tai-2.webp";
+import hatimTai3 from "@/components/illustrations/tales/pages/hatim-tai-3.webp";
+import sheikhChilli2 from "@/components/illustrations/tales/pages/sheikh-chilli-2.webp";
+import sheikhChilli3 from "@/components/illustrations/tales/pages/sheikh-chilli-3.webp";
+import chiriyaKawwa from "@/components/illustrations/tales/chiriya-kawwa.webp";
+import chiriyaKawwa2 from "@/components/illustrations/tales/pages/chiriya-kawwa-2.webp";
+import chiriyaKawwa3 from "@/components/illustrations/tales/pages/chiriya-kawwa-3.webp";
 import type { Elder, Relation } from "./book-store";
 import type { StoredChapter } from "./chapter-store";
 import { SAMPLE_CHAPTERS, type SampleChapter } from "./samples";
@@ -20,7 +29,7 @@ type SamplePage = { ur: string; en: string };
 
 const PAGES: Record<string, { pages: SamplePage[]; art: StaticImageData[] }> = {
   "umro-ayyar-ki-zambil": {
-    art: [sceneDoorway, nightPainting, trailerListen],
+    art: [umroAyyar2, umroAyyar3, trailerListen],
     pages: [
       {
         ur: "نانا اپنے کرتے کی جیب تھپتھپا کر کہتے، یہ میری زنبیل ہے۔ عمرو عیار کی زنبیل چھوٹی سی لگتی تھی، مگر جو چیز وہ مانگتا، اس میں سے نکل آتی: رسی، چراغ، یہاں تک کہ پورا خیمہ۔",
@@ -41,7 +50,7 @@ const PAGES: Record<string, { pages: SamplePage[]; art: StaticImageData[] }> = {
     ],
   },
   "ali-baba-aur-chalis-chor": {
-    art: [trailerDoorway, sceneEid, trailerListen],
+    art: [aliBaba2, aliBaba3, aliBaba],
     pages: [
       {
         ur: "علی بابا ایک غریب لکڑہارا تھا۔ ایک دن جنگل میں اس نے درخت کے پیچھے چھپ کر دیکھا کہ چالیس چور ایک بڑی چٹان کے پاس رکے۔ ان کے سردار نے پکارا، کھل جا سم سم! اور چٹان کھل گئی۔",
@@ -62,7 +71,7 @@ const PAGES: Record<string, { pages: SamplePage[]; art: StaticImageData[] }> = {
     ],
   },
   "shahzadi-gul-bakawali": {
-    art: [sceneRiver, trailerRiver, trailerListen],
+    art: [gulBakawali2, gulBakawali3, gulBakawali],
     pages: [
       {
         ur: "بوڑھے بادشاہ کی آنکھوں کی روشنی چلی گئی تھی، اور حکیموں نے کہا کہ دنیا میں صرف ایک پھول اسے واپس لا سکتا ہے: گلِ بکاولی، جو پریوں کے باغ میں کھلتا تھا۔",
@@ -83,7 +92,7 @@ const PAGES: Record<string, { pages: SamplePage[]; art: StaticImageData[] }> = {
     ],
   },
   "hatim-tai-ke-saat-sawal": {
-    art: [sceneDoorway, nightPainting, trailerListen],
+    art: [hatimTai2, hatimTai3, hatimTai],
     pages: [
       {
         ur: "حسن بانو امیر بھی تھی اور عقل مند بھی، اور وہ صرف اس سے شادی کرتی جو اس کے سات سوالوں کے جواب لے آئے۔ بہت سے شہزادوں نے کوشش کی، مگر کوئی ساتوں جواب لے کر نہیں لوٹا۔",
@@ -104,7 +113,7 @@ const PAGES: Record<string, { pages: SamplePage[]; art: StaticImageData[] }> = {
     ],
   },
   "sheikh-chilli-ka-khayali-pulao": {
-    art: [sceneEid, sceneDholki, trailerListen],
+    art: [sheikhChilli2, sheikhChilli3, trailerListen],
     pages: [
       {
         ur: "شیخ چلی سر پر گھی کا مٹکا رکھے بازار جا رہا تھا، اور ابھی سے منصوبے بنا رہا تھا۔ یہ گھی بیچ کر میں کچھ مرغیاں خریدوں گا۔",
@@ -125,7 +134,7 @@ const PAGES: Record<string, { pages: SamplePage[]; art: StaticImageData[] }> = {
     ],
   },
   "chiriya-aur-kawwa": {
-    art: [trailerDoorway, sceneRiver, trailerListen],
+    art: [chiriyaKawwa2, chiriyaKawwa3, chiriyaKawwa],
     pages: [
       {
         ur: "ایک تھی چڑیا، ایک تھا کوا۔ دونوں ساتھ ساتھ رہتے تھے۔ کوے نے جلدی جلدی نمک اور مٹی سے اپنا گھر بنایا، اور چڑیا پر ہنسا۔",
