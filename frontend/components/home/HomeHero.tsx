@@ -1,5 +1,5 @@
 import Link from "next/link";
-import skyline from "@/components/scene/karachi-skyline.jpg";
+import skyline from "@/components/scene/karachi-skyline.webp";
 import { SkyLantern } from "@/components/effects/SkyLantern";
 import { Diary } from "./Diary";
 import { ElderButton } from "./ElderButton";

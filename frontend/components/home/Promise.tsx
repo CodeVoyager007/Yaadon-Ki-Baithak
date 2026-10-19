@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AudioLines, BookOpenCheck, LockKeyhole } from "lucide-react";
 import { Birdy } from "@/components/mascots/Birdy";
-import river from "@/components/illustrations/trailer/river.jpg";
+import river from "@/components/illustrations/trailer/river.webp";
 import { ElderButton } from "./ElderButton";
 import { Lantern } from "./Lantern";
 

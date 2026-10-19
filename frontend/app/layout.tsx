@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/fraunces/full.css";
-import "@fontsource-variable/fraunces/full-italic.css";
+import "@fontsource-variable/fraunces/soft.css";
+import "@fontsource-variable/fraunces/soft-italic.css";
 import "@fontsource-variable/nunito/index.css";
 import "@fontsource-variable/noto-nastaliq-urdu/index.css";
 import "@fontsource-variable/caveat/index.css";

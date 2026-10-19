@@ -185,7 +185,7 @@ body {
 .anim-twinkle { animation: twinkle 3s steps(3) infinite; }
 .anim-flicker { animation: flicker 4s ease-in-out infinite; }
 .anim-drift { animation: drift 9s ease-in-out infinite; }
-.anim-flame { animation: flame 1.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.anim-flame { animation: flame 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 .anim-hop { animation: hop 0.9s steps(4) infinite; }
 .anim-drive { animation: drive 38s linear infinite; }
 

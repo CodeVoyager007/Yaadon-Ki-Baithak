@@ -5,12 +5,12 @@
  * Pakistani children heard from a Nani or Dadi, retold in our own words.
  */
 import type { StaticImageData } from "next/image";
-import aliBaba from "@/components/illustrations/tales/ali-baba.jpg";
-import chiriya from "@/components/illustrations/tales/chiriya-kawwa.jpg";
-import gulBakawali from "@/components/illustrations/tales/gul-bakawali.jpg";
-import hatimTai from "@/components/illustrations/tales/hatim-tai.jpg";
-import sheikhChilli from "@/components/illustrations/tales/sheikh-chilli.jpg";
-import umroAyyar from "@/components/illustrations/tales/umro-ayyar.jpg";
+import aliBaba from "@/components/illustrations/tales/ali-baba.webp";
+import chiriya from "@/components/illustrations/tales/chiriya-kawwa.webp";
+import gulBakawali from "@/components/illustrations/tales/gul-bakawali.webp";
+import hatimTai from "@/components/illustrations/tales/hatim-tai.webp";
+import sheikhChilli from "@/components/illustrations/tales/sheikh-chilli.webp";
+import umroAyyar from "@/components/illustrations/tales/umro-ayyar.webp";
 
 export type SampleChapter = {
   slug: string;

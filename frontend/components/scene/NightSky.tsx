@@ -3,7 +3,7 @@
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useMemo, useRef } from "react";
 import { seeded } from "@/lib/random";
-import skyline from "./karachi-skyline.jpg";
+import skyline from "./karachi-skyline.webp";
 
 const STAR_COUNT = 90;
 

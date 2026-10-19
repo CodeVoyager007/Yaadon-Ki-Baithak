@@ -6,14 +6,16 @@ type Props = {
   lit?: boolean;
   /** 0 to 1. While recording, the flame grows with the speaker's voice. */
   level?: number;
+  /** A small, steady flame: the lamp is lit and waiting, nobody is speaking yet. */
+  calm?: boolean;
   size?: number;
   className?: string;
 };
 
-/** Diya, the clay lamp that lights up while an elder is speaking. */
-export function Diya({ lit = true, level = 0, size = 64, className }: Props) {
+/** Diya, the clay lamp: always lit, and its flame leaps up while an elder is speaking. */
+export function Diya({ lit = true, level = 0, calm = false, size = 64, className }: Props) {
   const id = useId().replace(/:/g, "");
-  const grow = 1 + Math.min(Math.max(level, 0), 1) * 0.6;
+  const grow = calm ? 0.78 : 1 + Math.min(Math.max(level, 0), 1) * 0.6;
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={className} aria-hidden>
       <defs>
@@ -31,7 +33,7 @@ export function Diya({ lit = true, level = 0, size = 64, className }: Props) {
           <stop offset="100%" stopColor="#fff8e0" />
         </linearGradient>
       </defs>
-      {lit && <circle cx="50" cy="44" r={38 * grow} fill={`url(#glow-${id})`} className="anim-flicker" />}
+      {lit && <circle cx="50" cy="44" r={38 * grow} fill={`url(#glow-${id})`} opacity={calm ? 0.6 : 1} className="anim-flicker" />}
       {lit && (
         <g style={{ transform: `scale(${grow})`, transformOrigin: "50px 60px", transition: "transform 120ms ease-out" }}>
           <path className="anim-flame" d="M50 30 C58 42 58 52 50 60 C42 52 42 42 50 30 Z" fill={`url(#flame-${id})`} />

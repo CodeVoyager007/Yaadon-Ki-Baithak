@@ -429,7 +429,7 @@ export function RecordRoom() {
                 style={{ transform: `scale(${recording ? 0.9 + rec.level * 0.8 : 0.7})` }}
               />
               <span className="glass-night absolute inset-3 rounded-full" />
-              {thinking ? <PixelLantern size={72} className="relative" /> : <Diya lit={recording} level={rec.level} size={150} className="relative" />}
+              {thinking ? <PixelLantern size={72} className="relative" /> : <Diya calm={!recording} level={rec.level} size={150} className="relative" />}
             </button>
             <p className="mt-4 text-lg font-bold" aria-live="polite">
               {thinking

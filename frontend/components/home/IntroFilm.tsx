@@ -5,11 +5,11 @@ import { Volume2, VolumeX } from "lucide-react";
 import { SkyLantern } from "@/components/effects/SkyLantern";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSound } from "@/components/sound/SoundProvider";
-import doorway from "@/components/illustrations/trailer/doorway.jpg";
-import dholki from "@/components/illustrations/trailer/dholki.jpg";
-import listen from "@/components/illustrations/trailer/listen.jpg";
-import river from "@/components/illustrations/trailer/river.jpg";
-import train from "@/components/illustrations/trailer/train.jpg";
+import doorway from "@/components/illustrations/trailer/doorway.webp";
+import dholki from "@/components/illustrations/trailer/dholki.webp";
+import listen from "@/components/illustrations/trailer/listen.webp";
+import river from "@/components/illustrations/trailer/river.webp";
+import train from "@/components/illustrations/trailer/train.webp";
 
 type Shot = { img?: string; ur: string; en: string; ms: number; sound: "whoosh" | "boom" | null };
 
@@ -73,13 +73,7 @@ export function IntroFilm() {
   // changes (same bundle) but resets on every fresh load/refresh.
   useEffect(() => {
     if (reduce) return;
-    const play = () => {
-      // warm the images while the visitor reads the gate
-      SHOTS.map((s) => s.img).forEach((src) => {
-        if (src) new Image().src = src;
-      });
-      setPhase("gate");
-    };
+    const play = () => setPhase("gate");
     if (!introPlayedThisLoad && loadedOnHome()) {
       introPlayedThisLoad = true;
       play();
@@ -105,6 +99,10 @@ export function IntroFilm() {
 
   function play() {
     clear();
+    // Only someone who chose to watch downloads the film's paintings; the logo plays while they arrive.
+    SHOTS.forEach((s) => {
+      if (s.img) new Image().src = s.img;
+    });
     setPhase("logo");
     sfx("hit");
     let at = LOGO_MS;

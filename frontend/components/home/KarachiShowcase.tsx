@@ -1,4 +1,4 @@
-import ogImage from "@/app/opengraph-image.jpg";
+import ogImage from "@/components/scene/night-painting.webp";
 import { SkyLantern } from "@/components/effects/SkyLantern";
 import { AJRAK_BORDER } from "@/components/app/AppBackdrop";
 
