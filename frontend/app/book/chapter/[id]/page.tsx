@@ -166,7 +166,7 @@ export default function ChapterPage() {
           />
         ) : (
           <>
-            <StoryBook stored={stored} elder={elder} />
+            <StoryBook stored={stored} elder={elder} family={loadBook()?.familyName} />
             <BehindTheStory stored={stored} who={elder ? elderLabel(elder) : "the storyteller"} />
           </>
         )}

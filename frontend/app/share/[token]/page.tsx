@@ -148,7 +148,7 @@ export default function SharePage() {
             <button type="button" onClick={() => setOpen(null)} className="mb-6 inline-flex items-center gap-1.5 font-bold text-lantern-soft hover:underline">
               <ArrowLeft size={16} /> All storybooks
             </button>
-            <StoryBook stored={opened} elder={elderOf(opened.elderId)} />
+            <StoryBook stored={opened} elder={elderOf(opened.elderId)} family={book.familyName} />
             <BehindTheStory stored={opened} who={elderOf(opened.elderId) ? elderLabel(elderOf(opened.elderId)!) : "the storyteller"} />
           </>
         )}

@@ -102,11 +102,17 @@ When generating UI for this project:
 
 ## Storybooks
 
-- Every story is its own storybook (`components/book/StoryBook.tsx`): a cover, one spread per page (the painting
-  on the left, Urdu then English on the right, a button to hear that part in the elder's own voice) and an end
-  page with a line in their voice. On wide screens the leaf turns over the spine (motion, 0.75 s); on phones it is
-  one page at a time with a short slide. Buttons, the page dots, ← → keys and swipes all turn pages. Reduced
-  motion changes pages without the turn.
+- Every story is its own hardcover storybook (`components/book/StoryBook.tsx`). It starts closed: leather
+  boards (`.book-board`), an ajrak frame, the cover painting in a Mughal arch, the title in gold foil (`.gilt`).
+  "Open the book" swings the cover over the spine onto the patterned endpaper (`.endpaper`, "this storybook
+  belongs to…"); "Close the book" swings it shut again.
+- Inside, every spread is a painting on the left and the words on the right (Urdu, then English, and a button to
+  hear that part in the elder's own voice), then an end spread with a line in their voice. Pages turn like paper:
+  the leaf rotates over the spine, darkening as it lifts and casting a shadow on the page beneath; the page-edge
+  stacks move from right to left as you read. Pages can be dragged by hand (let go past halfway, or flick, and
+  the page turns; otherwise it falls back), or turned with the buttons, the dots and ← →.
+- Phones show one page at a time, bound on the left; the page turns off the binding the same way.
+  Reduced motion changes pages without the turn and without dragging.
 - Paper is `.storybook-paper` (cream), framed in the ajrak border on a dark leather board, like Dadi's book on
   the home page.
 - `lib/book-pages.ts` turns any saved story into pages: the writer's pages, else the body cut at paragraph
