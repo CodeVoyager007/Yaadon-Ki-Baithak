@@ -1,16 +1,54 @@
-node_modules
-.next
-out
+# Secrets: every .env file stays on your machine; only the examples are shared.
 .env
-.env.local
+.env.*
 .env*
 !.env.example
-.vercel
-*.log
-.DS_Store
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
 next-env.d.ts
 *.tsbuildinfo
-__pycache__
-.pytest_cache
-.venv
+
+# Python virtual environments (python -m venv, uv, virtualenv, conda)
+.venv/
+venv/
+env/
+.conda/
+
+# Python caches and tool output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# uv: the backend's dependencies live in backend/requirements.txt (the Docker
+# image and the deploy read that file). A local `uv init` / `uv add` creates
+# these; keep them local so there is one source of truth.
+.python-version
+pyproject.toml
+uv.lock
+/backend/main.py
+/backend/hello.py
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
 frontend/AGENTS.md
