@@ -56,3 +56,7 @@ backend/paint-check.*
 npm-debug.log*
 
 frontend/AGENTS.md
+
+# Demo video and soundtrack (shared outside git)
+*.mp4
+*.mp3
