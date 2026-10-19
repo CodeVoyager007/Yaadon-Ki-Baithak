@@ -44,7 +44,7 @@ def test_a_failed_painting_keeps_the_chapter():
 
     out = run(Orchestrator(FakeModel(CHAPTER), broken).write_chapter(ELDER, "Free talk", TURNS, 1))
     assert out.chapter is not None and out.image_url is None
-    assert out.trace[-1].outcome.startswith("failed; chapter kept")
+    assert out.trace[-1].outcome.startswith("failed; book kept")
 
 
 def test_no_chapter_means_no_painting():
@@ -58,3 +58,30 @@ def test_no_chapter_means_no_painting():
 def test_without_an_illustrator_the_chapter_still_comes_back():
     out = run(Orchestrator(FakeModel(CHAPTER)).write_chapter(ELDER, "Free talk", TURNS, 1))
     assert out.chapter and out.image_url is None
+
+
+BOOK = {
+    **CHAPTER,
+    "pages": [
+        {"ur": "ہم انارکلی کے پاس رہتے تھے۔", "en": "We lived near Anarkali.", "scene": "a narrow bazaar at dusk", "sourceTurns": [1]},
+        {"ur": "بارش کے بعد الائچی کی خوشبو آتی تھی۔", "en": "After rain it smelled of cardamom.", "scene": "a tea shop after rain", "sourceTurns": [3]},
+        {"ur": "ابا چائے لاتے تھے۔", "en": "Abba brought tea.", "scene": "a brass teapot on a wooden bench", "sourceTurns": [1]},
+    ],
+}
+
+
+def test_every_page_is_painted_and_one_failure_keeps_the_rest():
+    painted = []
+
+    async def painter(req):
+        painted.append(req)
+        if "teapot" in req.prompt:
+            raise RuntimeError("Cloudflare answered 429")
+        return f"https://img/{len(painted)}"
+
+    out = run(Orchestrator(FakeModel(BOOK), painter).write_chapter(ELDER, "Free talk", TURNS, 42))
+    assert len(out.chapter.pages) == 3 and len(out.page_images) == 3
+    assert out.page_images[2] is None and out.page_images[0] and out.image_url == out.page_images[0]
+    assert len({r.seed for r in painted}) == 3  # each page its own composition, same family style
+    assert painted[0].width == 768 and painted[0].height == 576
+    assert out.trace[-1].outcome == "painted 2 of 3 pages"

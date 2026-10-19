@@ -536,7 +536,7 @@ export function RecordRoom() {
             {live && answers > 0 && session.current ? (
               <>
                 <p className="max-w-sm text-moon/70">
-                  {answers} {answers === 1 ? "recording" : "recordings"} saved in {who}&apos;s own voice. Hudhud can turn the story into a chapter now.
+                  {answers} {answers === 1 ? "recording" : "recordings"} saved in {who}&apos;s own voice. Hudhud can turn the story into an illustrated storybook now.
                 </p>
                 <button
                   type="button"
@@ -545,7 +545,7 @@ export function RecordRoom() {
                   }}
                   className="btn-lantern pixel-corners mt-2 inline-flex h-14 items-center px-7 font-extrabold"
                 >
-                  Make the chapter
+                  Make the storybook
                 </button>
               </>
             ) : live ? (

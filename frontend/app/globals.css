@@ -382,3 +382,9 @@ html:has(.home-sky) { overscroll-behavior-y: none; background: #0a0a24; }
   .print-page img, .print-page blockquote { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Storybook pages (components/book/StoryBook) */
+.storybook-paper {
+  background: radial-gradient(ellipse at 30% 20%, #fbf1dc, #f1e0bd 60%, #e8d2a6);
+  color: #24160e;
+}

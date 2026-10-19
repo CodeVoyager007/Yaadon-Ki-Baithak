@@ -2,7 +2,7 @@
 
 An AI agent that interviews grandparents by voice in Urdu and turns their memories into an illustrated family storybook, with their real voice beside every chapter. Built for the NYLP AI Hackathon 2026.
 
-**Hudhud is an agent that listens, decides, and hands off to two other agents.** The elder tells the whole story in their own words without being interrupted. Hudhud then reads it, finds what a grandchild couldn't follow (who "he" was, where or when it happened) and asks only about that, gently and at most three times, and decides when the chapter is ready. Then the story writer turns the session into a bilingual chapter using only the elder's words, and the illustrator paints it.
+**Hudhud is an agent that listens, decides, and hands off to two other agents.** The elder tells the whole story in their own words without being interrupted. Hudhud then reads it, finds what a grandchild couldn't follow (who "he" was, where or when it happened) and asks only about that, gently and at most three times, and decides when the chapter is ready. Then the story writer turns it into an illustrated storybook, page by page in Urdu and English, using only the elder's words, and the illustrator paints every page. A family keeps as many storybooks as they like on one bookshelf.
 
 ## Quick start
 
@@ -26,7 +26,7 @@ Open http://localhost:3000. With no backend URL or no keys the app still runs in
 demo mode on honest stand-ins (practice questions, transcript-only drafts).
 
 ```bash
-cd backend && pytest   # 47 tests: agents, orchestrator, HTTP and security; no keys, no network
+cd backend && pytest   # 50 tests: agents, orchestrator, HTTP and security; no keys, no network
 npm run build          # frontend production build (then npm run typecheck)
 ```
 

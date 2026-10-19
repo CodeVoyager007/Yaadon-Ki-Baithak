@@ -44,7 +44,7 @@ python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activ
 pip install -r requirements-dev.txt
 cp .env.example .env                              # fill in keys; APP_ENV=development
 uvicorn app.main:app --env-file .env --reload --port 8000
-pytest                                            # 47 tests, no keys needed
+pytest                                            # 50 tests, no keys needed
 ```
 
 Then set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`
@@ -92,12 +92,16 @@ actually did:
   two questions at once, or an over-long question are rejected and retried once.
   At 8 answers it wraps up with a fixed thank-you line and doesn't call the
   model. Two failures → `None`; it never writes a question itself.
-- **Story writer.** First person, the elder's own phrases, Urdu plus a faithful
+- **Story writer.** Writes an illustrated storybook: a title and 2 to 8 pages, each a
+  few sentences in Urdu and English with the lines it came from and its own scene
+  (a plain body is cut into pages if the model gives none). First person, the elder's own phrases, Urdu plus a faithful
   English version, `[unclear]` instead of guesses, 250–500 words only if the
   material is there. A pull quote not found word for word in an elder turn is
   re-pointed to the turn that said it, or dropped. A year never said (Western
   or Urdu digits) is dropped. Source turns must exist. Returns a `scene`.
-- **Illustrator.** Fixed gouache style, per-family seed. Graphic scenes are
+- **Illustrator.** Paints every page (three at a time, each with its own seed in
+  the family's style); a page that fails keeps a themed picture and the book is
+  never lost. Fixed gouache style, per-family seed. Graphic scenes are
   swapped for a quiet train or a lantern-lit doorway. Never sees the elder's photo.
 - **All of them** fence transcripts between `<<<` and `>>>` as data, and strip
   those markers from answers so an answer can't break out of its fence.
@@ -107,8 +111,8 @@ actually did:
 | Route | Body | Response |
 | --- | --- | --- |
 | `POST /api/turn` | `{ elder, theme, turns, skipped?, mode?: "clarify" \| "interview", storyTurns? }` | `InterviewerDecision` + `handoff` + `signals` (what Hudhud noticed) + `trace` |
-| `POST /api/chapter` | `{ elder, theme, turns, familySeed }` | `{ chapter, imageUrl?, trace }`: the orchestrated hand-off |
-| `POST /api/illustrate` | `{ chapter: { title, scene?, year?, place? }, familySeed }` | `{ imageUrl?, trace }`: paints a saved chapter again |
+| `POST /api/chapter` | `{ elder, theme, turns, familySeed }` | `{ chapter (with pages), imageUrl?, pageImages, trace }`: the orchestrated hand-off |
+| `POST /api/illustrate` | `{ chapter: { title, scene?, year?, place?, pages?: [{ scene }] }, familySeed }` | `{ imageUrl?, pageImages, trace }`: paints a saved book again |
 | `POST /api/transcribe` | FormData `{ audio, lang, sessionId? }` | `{ text, audioPath? }`. Gemini, then Whisper as backup; the clip is stored with the caller's token |
 | `POST /api/tts` | `{ text, lang }` | `audio/wav`, Hudhud's voice only, cached by text |
 | `GET /api/share/{token}` | none | read-only family book (public, service role after the token check) |
@@ -193,7 +197,8 @@ foreign-key indexes the share read filters on), `0003_hardening.sql` (only
 signed-in users may call `owns_family()`, and share tokens must be 24-64 random
 characters) and `0004_restore.sql` (the extra fields a book needs to come back
 on another device: topic, storyteller photo, session end, `unclear`, `scene`,
-draft flag).
+draft flag) and `0005_storybook_pages.sql` (each book's pages, with the storage
+path of every page's painting so links can be re-signed).
 
 ```
 families 1─* elders 1─* sessions 1─* turns

@@ -113,6 +113,7 @@ export function clearBook() {
     /* ignore */
   }
   void import("./audio-store").then((m) => m.clearClips()).catch(() => {});
+  void import("./image-store").then((m) => m.clearImages()).catch(() => {});
 }
 
 export function updateBook(patch: Partial<FamilyBook>) {

@@ -7,11 +7,12 @@ import { Check, Copy, Download, Mic, Plus, Share2, Upload, X } from "lucide-reac
 import { AJRAK_BORDER, AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BookNav } from "@/components/app/BookNav";
-import { SceneByName, SCENE_IMAGES } from "@/components/illustrations/SceneByName";
+import { SceneByName } from "@/components/illustrations/SceneByName";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { Birdy } from "@/components/mascots/Birdy";
 import { elderLabel, loadBook, newShareToken, updateBook, type Elder, type FamilyBook, type Theme } from "@/lib/book-store";
-import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
+import { BookCover } from "@/components/book/BookCover";
+import { listChapters, type StoredChapter } from "@/lib/chapter-store";
 import { pushShareLink } from "@/lib/data/remote";
 import { syncBook } from "@/lib/data/sync";
 import { hasSupabase } from "@/lib/supabase/client";
@@ -74,8 +75,8 @@ export default function BookPage() {
               <h1 className="font-display mt-2 text-4xl leading-[1.05] sm:text-5xl">{book.familyName}</h1>
               <p className="mt-3 max-w-md text-moon/80">
                 {chapters.length === 0 && first
-                  ? `No chapters yet. The first one starts when ${elderLabel(first)} begins talking about ${firstTheme.id.toLowerCase()}.`
-                  : `${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"} from ${book.elders.length} ${book.elders.length === 1 ? "storyteller" : "storytellers"}.`}
+                  ? `No storybooks yet. The first one starts when ${elderLabel(first)} begins telling a story about ${firstTheme.id.toLowerCase()}.`
+                  : `${chapters.length} ${chapters.length === 1 ? "storybook" : "storybooks"} from ${book.elders.length} ${book.elders.length === 1 ? "storyteller" : "storytellers"}.`}
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 {chapters.length === 0 && first ? (
@@ -126,7 +127,7 @@ export default function BookPage() {
             </span>
             <div className="flex-1">
               <h2 className="font-bold text-moon">Upload an old voice note</h2>
-              <p className="text-sm text-moon/70">Turn a WhatsApp voice note into a chapter.</p>
+              <p className="text-sm text-moon/70">Turn a WhatsApp voice note into a storybook.</p>
             </div>
             <span className="rounded-md bg-white/10 px-1.5 text-[11px] font-bold text-moon">Soon</span>
           </section>
@@ -140,20 +141,14 @@ export default function BookPage() {
           {chapters.length === 0 ? (
             <div className="glass-night flex flex-col items-center gap-3 rounded-[28px] px-6 py-12 text-center">
               <Birdy mood="listening" size={96} />
-              <h2 className="font-display text-2xl text-moon">Chapters will live here</h2>
+              <h2 className="font-display text-2xl text-moon">Your storybooks will stand here</h2>
               <p className="max-w-md text-moon/70">
-                Each sitting becomes a chapter in Urdu and English, with a painting and {first ? elderLabel(first) : "your elder"}&apos;s own voice beside it.
+                Every story {first ? elderLabel(first) : "your elder"} tells becomes its own illustrated storybook in Urdu and English, with their real voice
+                inside.
               </p>
             </div>
           ) : (
-            <>
-              <h2 className="font-display mt-4 text-3xl text-moon">Chapters</h2>
-              <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {chapters.map((c) => (
-                  <BookChapterCard key={c.id} stored={c} elder={elderOf(c.elderId)} />
-                ))}
-              </div>
-            </>
+            <Bookshelf chapters={chapters} elders={book.elders} />
           )}
         </section>
       </main>
@@ -175,7 +170,7 @@ function ElderRow({ elder, count }: { elder: Elder; count: number }) {
       <span className="min-w-0 flex-1">
         <span className="block font-bold text-moon">{elderLabel(elder)}</span>
         <span className="block truncate text-sm text-moon/70">
-          {count} {count === 1 ? "chapter" : "chapters"}, speaks {elder.language}
+          {count} {count === 1 ? "storybook" : "storybooks"}, speaks {elder.language}
           {elder.birthplace ? `, from ${elder.birthplace}` : ""}
         </span>
       </span>
@@ -190,25 +185,51 @@ function ElderRow({ elder, count }: { elder: Elder; count: number }) {
   );
 }
 
-function BookChapterCard({ stored, elder }: { stored: StoredChapter; elder: Elder | null }) {
-  const img = stored.imageUrl ?? SCENE_IMAGES[stored.scene].src;
+/** Every storybook the family has made, as covers on shelves. Filter by storyteller when there are many. */
+function Bookshelf({ chapters, elders }: { chapters: StoredChapter[]; elders: Elder[] }) {
+  const [who, setWho] = useState<string>("all");
+  const tellers = elders.filter((e) => chapters.some((c) => c.elderId === e.id));
+  const shown = who === "all" ? chapters : chapters.filter((c) => c.elderId === who);
+  const nameOf = (id: string) => {
+    const e = elders.find((x) => x.id === id);
+    return e ? elderLabel(e) : "Storyteller";
+  };
+
   return (
-    <Link href={`/book/chapter/${stored.id}`} className="glass-night group block overflow-hidden rounded-[26px] transition hover:-translate-y-0.5 hover:bg-white/10">
-      <div className="relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt="" className="h-40 w-full object-cover" />
-        {stored.draft && <span className="absolute left-3 top-3 rounded-md bg-lantern/90 px-2 py-0.5 text-xs font-bold text-ink">Draft</span>}
+    <>
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-display text-3xl text-moon">The family bookshelf</h2>
+          <p className="mt-1 text-moon/65">
+            {chapters.length} {chapters.length === 1 ? "storybook" : "storybooks"}. Tap one to open it and turn the pages.
+          </p>
+        </div>
+        {tellers.length > 1 && (
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Show storybooks by">
+            {[{ id: "all", label: "Everyone" }, ...tellers.map((e) => ({ id: e.id, label: elderLabel(e) }))].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setWho(f.id)}
+                aria-pressed={who === f.id}
+                className={`h-10 rounded-full px-4 text-sm font-bold transition ${who === f.id ? "bg-lantern text-ink" : "bg-white/5 text-moon hover:bg-white/15"}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="p-5">
-        <h3 className="font-display text-xl leading-tight text-moon">{stored.chapter.title.en}</h3>
-        <p className="font-urdu mt-1 text-lg leading-[1.9] text-lantern-soft" dir="rtl" lang="ur" style={{ textAlign: "left" }}>
-          {stored.chapter.title.ur}
-        </p>
-        <p className="mt-1 text-sm text-moon/65">
-          {elder ? elderLabel(elder) : "Storyteller"}, {voiceLength(stored.turns)} of voice
-        </p>
-      </div>
-    </Link>
+      <ul className="mt-6 grid grid-cols-2 gap-x-5 gap-y-10 border-b-[10px] border-[#3a2016] pb-6 shadow-[0_14px_20px_-14px_rgba(0,0,0,0.8)] sm:grid-cols-3 lg:grid-cols-4">
+        {shown.map((c) => (
+          <li key={c.id}>
+            <Link href={`/book/chapter/${c.id}`} className="block rounded-[14px] focus-visible:outline-4 focus-visible:outline-lantern">
+              <BookCover stored={c} teller={nameOf(c.elderId)} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

@@ -43,7 +43,7 @@ async function upsert(supabase: Client, table: string, rows: Row | Row[], newer:
 }
 
 /** The storage path inside a signed URL from our images bucket, so a fresh URL can be signed later. */
-function imagePathOf(url: string | undefined) {
+function imagePathOf(url: string | null | undefined) {
   const m = url?.match(/\/storage\/v1\/object\/sign\/images\/([^?]+)/);
   return m ? decodeURIComponent(m[1]) : null;
 }
@@ -114,6 +114,14 @@ export async function pushChapter(stored: StoredChapter, familyId: string | unde
 
   const c = stored.chapter;
   const imagePath = imagePathOf(stored.imageUrl);
+  // Each page keeps its painting's storage path, never a link that expires.
+  const pages = (c.pages ?? []).map((p, i) => ({
+    ur: p.ur,
+    en: p.en,
+    scene: p.scene ?? null,
+    sourceTurns: p.sourceTurns,
+    imagePath: imagePathOf(stored.pageImages?.[i] ?? undefined),
+  }));
   await upsert(
     supabase,
     "chapters",
@@ -133,8 +141,9 @@ export async function pushChapter(stored: StoredChapter, familyId: string | unde
       unclear: c.unclear ?? [],
       scene: c.scene ?? null,
       draft: Boolean(stored.draft),
+      pages,
     },
-    ["unclear", "scene", "draft"],
+    ["unclear", "scene", "draft", "pages"],
   );
 }
 
@@ -164,8 +173,12 @@ export async function removeChapterRemote(stored: StoredChapter, familyId: strin
 
   // Only touch paths this family owns; anything else stays.
   const voicePaths = stored.turns.map((t) => t.audioPath ?? "").filter((p) => p.startsWith(`${familyId}/`));
+  const paintingPaths = [stored.imageUrl, ...(stored.pageImages ?? [])]
+    .map((u) => imagePathOf(u) ?? "")
+    .filter((p) => p.startsWith(`${familyId}/`));
 
   await supabase.storage.from("audio").remove(voicePaths);
+  if (paintingPaths.length) await supabase.storage.from("images").remove([...new Set(paintingPaths)]);
   await supabase.from("turns").delete().eq("session_id", stored.sessionId);
   await supabase.from("chapters").delete().eq("id", stored.id);
   await supabase.from("sessions").delete().eq("id", stored.sessionId);
@@ -249,10 +262,15 @@ export async function pullFamily(userId: string, themeScene: (theme: Theme) => S
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
 
   const chaptersRaw = (chapterRows ?? []) as Row[];
-  const paths = chaptersRaw.map((c) => str(c.image_path)).filter((p): p is string => Boolean(p?.startsWith(`${familyId}/`)));
+  const pagesOf = (c: Row) => (Array.isArray(c.pages) ? (c.pages as Row[]).filter((p) => p && typeof p === "object").slice(0, 8) : []);
+  const ownPath = (p: unknown): p is string => typeof p === "string" && p.startsWith(`${familyId}/`) && !p.includes("..");
+  const paths = [
+    ...chaptersRaw.map((c) => c.image_path),
+    ...chaptersRaw.flatMap((c) => pagesOf(c).map((p) => p.imagePath)),
+  ].filter(ownPath);
   const signed = new Map<string, string>();
   if (paths.length) {
-    const { data } = await supabase.storage.from("images").createSignedUrls(paths, 7 * 24 * 60 * 60);
+    const { data } = await supabase.storage.from("images").createSignedUrls([...new Set(paths)], 7 * 24 * 60 * 60);
     for (const d of data ?? []) if (d.path && d.signedUrl) signed.set(d.path, d.signedUrl);
   }
 
@@ -260,6 +278,7 @@ export async function pullFamily(userId: string, themeScene: (theme: Theme) => S
     const session = sessionById.get(String(c.session_id));
     if (!session) return [];
     const quote = str(c.pull_quote);
+    const pages = pagesOf(c);
     return [
       {
         id: String(c.id),
@@ -270,6 +289,7 @@ export async function pullFamily(userId: string, themeScene: (theme: Theme) => S
         createdAt: String(c.created_at),
         turns: session.turns,
         imageUrl: signed.get(str(c.image_path) ?? ""),
+        pageImages: pages.length ? pages.map((p) => signed.get(str(p.imagePath) ?? "") ?? null) : undefined,
         draft: c.draft === true,
         chapter: {
           title: { ur: String(c.title_ur ?? ""), en: String(c.title_en ?? "") },
@@ -280,6 +300,14 @@ export async function pullFamily(userId: string, themeScene: (theme: Theme) => S
           place: str(c.place),
           unclear: Array.isArray(c.unclear) ? (c.unclear as string[]) : [],
           scene: str(c.scene),
+          pages: pages.length
+            ? pages.map((p) => ({
+                ur: str(p.ur) ?? "",
+                en: str(p.en) ?? "",
+                scene: str(p.scene),
+                sourceTurns: Array.isArray(p.sourceTurns) ? (p.sourceTurns as unknown[]).filter((n): n is number => typeof n === "number") : [],
+              }))
+            : undefined,
         },
       },
     ];

@@ -27,8 +27,12 @@ from .types import Chapter, ElderProfile, IllustrationRequest, InterviewerDecisi
 # Paints one request and returns a URL the browser can show (signed URL or data: URL).
 Painter = Callable[[IllustrationRequest], Awaitable[str]]
 
-# A painting that takes longer than this is abandoned; the chapter is kept with the theme's picture.
+# A painting that takes longer than this is abandoned; the page keeps the theme's picture.
 PAINT_TIMEOUT_S = 50
+# Pages are painted a few at a time: quick, without bursting the free image quota's rate limit.
+PAINT_AT_ONCE = 3
+# Page pictures are landscape and smaller than a cover: they sit beside the words.
+PAGE_W, PAGE_H = 768, 576
 
 
 @dataclass
@@ -42,8 +46,9 @@ class TurnOutcome:
 @dataclass
 class ChapterOutcome:
     chapter: Optional[Chapter]
-    image_url: Optional[str] = None
+    image_url: Optional[str] = None  # the cover: the first page that was painted
     trace: list[TraceStep] = field(default_factory=list)
+    page_images: list[Optional[str]] = field(default_factory=list)  # one per page, None where painting failed
 
 
 def _ms(start: float) -> int:
@@ -109,27 +114,47 @@ class Orchestrator:
             )
         )
 
-        image_url = await self._paint(chapter, family_seed, trace)
-        return ChapterOutcome(chapter, image_url, trace)
+        page_images = await self._paint(chapter, family_seed, trace)
+        cover = next((u for u in page_images if u), None)
+        return ChapterOutcome(chapter, cover, trace, page_images)
 
-    async def paint_chapter(self, chapter: Chapter, family_seed: int) -> tuple[Optional[str], list[TraceStep]]:
-        """Re-run only the illustration for an existing chapter."""
+    async def paint_chapter(self, chapter: Chapter, family_seed: int) -> tuple[list[Optional[str]], list[TraceStep]]:
+        """Paint an existing book again, page by page."""
         trace: list[TraceStep] = []
-        image_url = await self._paint(chapter, family_seed, trace)
-        return image_url, trace
+        return await self._paint(chapter, family_seed, trace), trace
 
-    async def _paint(self, chapter: Chapter, family_seed: int, trace: list[TraceStep]) -> Optional[str]:
+    async def _paint(self, chapter: Chapter, family_seed: int, trace: list[TraceStep]) -> list[Optional[str]]:
+        """One painting per page (or one cover for a book without pages). A page that fails keeps its
+        place as None, so the book is never lost over a picture."""
         if not self.painter:
-            trace.append(TraceStep(agent="orchestrator", outcome="illustrator not configured; theme picture used"))
-            return None
-        request = illustration_request(chapter.title, family_seed, chapter.scene, chapter.year, chapter.place)
+            trace.append(TraceStep(agent="orchestrator", outcome="illustrator not configured; theme pictures used"))
+            return [None] * len(chapter.pages)
+        scenes = [p.scene or chapter.scene for p in chapter.pages] or [chapter.scene]
+        requests = [
+            illustration_request(chapter.title, (family_seed + i * 7919) % 1_000_000, scene, chapter.year, chapter.place, PAGE_W, PAGE_H)
+            for i, scene in enumerate(scenes)
+        ]
+        gate = asyncio.Semaphore(PAINT_AT_ONCE)
+
+        async def paint_one(req: IllustrationRequest) -> Optional[str]:
+            async with gate:
+                try:
+                    return await asyncio.wait_for(self.painter(req), timeout=PAINT_TIMEOUT_S)
+                except Exception:
+                    return None
+
         start = time.perf_counter()
-        try:
-            url = await asyncio.wait_for(self.painter(request), timeout=PAINT_TIMEOUT_S)
-        except Exception as err:  # the chapter matters more than its picture
+        urls = list(await asyncio.gather(*(paint_one(r) for r in requests)))
+        done = sum(1 for u in urls if u)
+        if done:
             trace.append(
-                TraceStep(agent="illustrator", outcome="failed; chapter kept with theme picture", detail=type(err).__name__, ms=_ms(start))
+                TraceStep(
+                    agent="illustrator",
+                    outcome=f"painted {done} of {len(urls)} pages",
+                    detail=requests[0].prompt.split(".")[0],
+                    ms=_ms(start),
+                )
             )
-            return None
-        trace.append(TraceStep(agent="illustrator", outcome="painted", detail=request.prompt.split(".")[0], ms=_ms(start)))
-        return url
+        else:
+            trace.append(TraceStep(agent="illustrator", outcome="failed; book kept with theme pictures", ms=_ms(start)))
+        return urls

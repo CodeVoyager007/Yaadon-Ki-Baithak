@@ -16,6 +16,7 @@ import type { Chapter, ElderProfile, InterviewerDecision, TraceStep, Turn as Wir
 import type { Elder, Theme } from "./book-store";
 import { elderLabel } from "./book-store";
 import type { Turn } from "./chapter-store";
+import { MAX_PAGES } from "./book-pages";
 import { PRACTICE_CLARIFY, PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
 import { hasSupabase, supabaseBrowser } from "./supabase/client";
 
@@ -164,27 +165,60 @@ export async function transcribe(
 
 /** POST /api/chapter  { elder, theme, turns, familySeed } -> { chapter, imageUrl?, trace }: the writer, then the illustrator. */
 export async function writeAndIllustrate(elder: Elder, theme: Theme, turns: Turn[], familySeed: number) {
-  const ai = await post<{ chapter: Chapter; imageUrl?: string | null; trace: TraceStep[] }>("/api/chapter", {
+  const ai = await post<{ chapter: Chapter; imageUrl?: string | null; pageImages?: (string | null)[]; trace: TraceStep[] }>("/api/chapter", {
     elder: profile(elder),
     theme,
     turns: plain(turns),
     familySeed,
   });
   if (ai?.chapter) {
-    return { chapter: ai.chapter, imageUrl: ai.imageUrl ?? undefined, trace: ai.trace ?? [], source: "ai" as Source };
+    return {
+      chapter: ai.chapter,
+      imageUrl: ai.imageUrl ?? undefined,
+      pageImages: ai.pageImages ?? [],
+      trace: ai.trace ?? [],
+      source: "ai" as Source,
+    };
   }
-  return { chapter: transcriptDraft(elder, theme, turns), imageUrl: undefined, trace: [] as TraceStep[], source: "stand-in" as Source };
+  return {
+    chapter: transcriptDraft(elder, theme, turns),
+    imageUrl: undefined,
+    pageImages: [] as (string | null)[],
+    trace: [] as TraceStep[],
+    source: "stand-in" as Source,
+  };
 }
 
-/** POST /api/illustrate  { chapter, familySeed } -> { imageUrl?, trace }: paints a chapter again. Only the brief is sent, never the elder's words. */
-export async function illustrateOnly(chapter: Chapter, familySeed: number): Promise<{ imageUrl?: string | null; trace?: TraceStep[] }> {
+/**
+ * POST /api/illustrate  { chapter, familySeed } -> { imageUrl?, pageImages, trace }: paints a book again,
+ * page by page. Only the brief is sent (title, scenes, year, place), never the elder's words.
+ */
+export async function illustrateOnly(
+  chapter: Chapter,
+  familySeed: number,
+): Promise<{ imageUrl?: string | null; pageImages?: (string | null)[]; trace?: TraceStep[] }> {
   const { title, scene, year, place } = chapter;
-  const ai = await post<{ imageUrl?: string | null; trace: TraceStep[] }>("/api/illustrate", {
-    chapter: { title, scene, year, place },
+  const pages = (chapter.pages ?? []).map((p) => ({ scene: p.scene }));
+  const ai = await post<{ imageUrl?: string | null; pageImages?: (string | null)[]; trace: TraceStep[] }>("/api/illustrate", {
+    chapter: { title, scene, year, place, pages },
     familySeed,
   });
-  if (ai) return { imageUrl: ai.imageUrl, trace: ai.trace };
+  if (ai) return { imageUrl: ai.imageUrl, pageImages: ai.pageImages, trace: ai.trace };
   return { imageUrl: null };
+}
+
+function answersToPages(answers: Turn[]) {
+  const per = Math.ceil(answers.length / MAX_PAGES) || 1;
+  const pages = [];
+  for (let i = 0; i < answers.length; i += per) {
+    const group = answers.slice(i, i + per);
+    pages.push({
+      ur: group.filter((t) => t.lang === "ur").map((t) => t.text.trim()).join("\n\n"),
+      en: group.filter((t) => t.lang === "en").map((t) => t.text.trim()).join("\n\n"),
+      sourceTurns: group.map((t) => t.index),
+    });
+  }
+  return pages;
 }
 
 /** Stand-in chapter: the elder's own words, in order, nothing added. */
@@ -204,6 +238,8 @@ function transcriptDraft(elder: Elder, theme: Theme, turns: Turn[]): Chapter {
       ur: theme === "Free talk" || !themeInfo ? `${urWho} کی یادیں` : `${urWho} کی یادیں: ${themeInfo.ur}`,
     },
     body: { ur: ur.join("\n\n"), en: en.join("\n\n") },
+    // One page per answer, so the draft still reads as a book (long sittings share pages).
+    pages: answersToPages(answers),
     sourceTurns: answers.map((t) => t.index),
     pullQuote: longest ? { text: longest.text.trim(), turnIndex: longest.index } : undefined,
     year: theme === "1947" ? "1947" : undefined,

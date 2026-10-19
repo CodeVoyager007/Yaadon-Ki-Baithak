@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import re
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Request
 
@@ -120,11 +121,26 @@ async def _chapter(admin: Supa, family_id: str, row: dict, by_session: dict, tur
         "chapter": chapter,
         "turns": turns_by_session.get(row["session_id"], []),
     }
-    # image_path is written by the family, and the service role can sign anything, so only
+    # Paths are written by the family, and the service role can sign anything, so only
     # ever sign a file inside this family's own folder (no "../", no other family's id).
-    path = row.get("image_path") or ""
-    if path.startswith(f"{family_id}/") and ".." not in path:
-        url = await admin.signed_url("images", path, SIGN_SECONDS)
-        if url:
-            out["imageUrl"] = url
+    async def sign(path: object) -> Optional[str]:
+        if isinstance(path, str) and path.startswith(f"{family_id}/") and ".." not in path:
+            return await admin.signed_url("images", path, SIGN_SECONDS)
+        return None
+
+    url = await sign(row.get("image_path"))
+    if url:
+        out["imageUrl"] = url
+    raw_pages = row.get("pages") if isinstance(row.get("pages"), list) else []
+    pages = [p for p in raw_pages[:8] if isinstance(p, dict)]
+    if pages:
+        chapter["pages"] = [
+            {
+                "ur": p.get("ur") if isinstance(p.get("ur"), str) else "",
+                "en": p.get("en") if isinstance(p.get("en"), str) else "",
+                "sourceTurns": [n for n in p.get("sourceTurns") or [] if isinstance(n, int)],
+            }
+            for p in pages
+        ]
+        out["pageImages"] = list(await asyncio.gather(*(sign(p.get("imagePath")) for p in pages)))
     return out

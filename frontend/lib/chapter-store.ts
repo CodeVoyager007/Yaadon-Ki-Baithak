@@ -42,6 +42,8 @@ export type StoredChapter = {
   /** The session's turns, kept so each answer can be played in the elder's own voice. */
   turns: Turn[];
   imageUrl?: string;
+  /** One painting per page (a URL, or "idb:<id>" for one kept on this device); null where it failed. */
+  pageImages?: (string | null)[];
   /** True when the AI writer wasn't connected and the chapter is the plain transcript. */
   draft?: boolean;
   /** Short notes from the agents, shown on the "writing" screen and chapter footer. */

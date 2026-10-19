@@ -8,11 +8,15 @@ import { AppBackdrop } from "@/components/app/AppBackdrop";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BookNav } from "@/components/app/BookNav";
 import { BirdySays } from "@/components/app/SpeechBubble";
-import { ChapterView } from "@/components/app/ChapterView";
+import { BehindTheStory } from "@/components/book/BehindTheStory";
+import { StoryBook } from "@/components/book/StoryBook";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { illustrateOnly } from "@/lib/api";
 import { deleteClips } from "@/lib/audio-store";
-import { getElder, loadBook, type Elder } from "@/lib/book-store";
+import { bookPages } from "@/lib/book-pages";
+import { elderLabel, getElder, loadBook, type Elder } from "@/lib/book-store";
+import { deleteImages, keepImage } from "@/lib/image-store";
+import type { Page } from "@/lib/types";
 import { removeChapterRemote } from "@/lib/data/remote";
 import { deleteChapter, getChapter, saveChapter, type StoredChapter } from "@/lib/chapter-store";
 
@@ -26,24 +30,29 @@ export default function ChapterPage() {
   const [painting, setPainting] = useState(false);
   const [paintNote, setPaintNote] = useState<string | null>(null);
 
-  async function handleNewPicture() {
+  /** Paints every page again. A page whose new painting fails keeps the one it had. */
+  async function handleNewPictures() {
     if (!stored || painting) return;
     setPainting(true);
     setPaintNote(null);
+    const resting = "The painter is taking a rest right now. The book keeps its pictures.";
     try {
-      const seed = Math.floor(Math.random() * 1000000);
-      const res = await illustrateOnly(stored.chapter, seed);
-      if (res.imageUrl) {
-        const next: StoredChapter = { ...stored, imageUrl: res.imageUrl };
+      // Older books get their pages written down first, so each one can be painted.
+      const pages: Page[] = bookPages(stored).map(({ ur, en, scene, sourceTurns }) => ({ ur, en, scene, sourceTurns }));
+      const chapter = { ...stored.chapter, pages };
+      const res = await illustrateOnly(chapter, Math.floor(Math.random() * 1000000));
+      const fresh = await Promise.all((res.pageImages ?? []).map((u) => keepImage(u)));
+      if (fresh.some(Boolean)) {
+        const pageImages = pages.map((_, i) => fresh[i] ?? stored.pageImages?.[i] ?? null);
+        const next: StoredChapter = { ...stored, chapter, pageImages, imageUrl: (await keepImage(res.imageUrl)) ?? pageImages.find(Boolean) ?? stored.imageUrl };
         saveChapter(next);
         setStored(next);
-        setPaintNote("Hudhud painted a new picture for this chapter!");
+        setPaintNote(`Hudhud painted ${fresh.filter(Boolean).length} new pictures for this book!`);
       } else {
-        setPaintNote("The painter is taking a rest right now. The chapter keeps its picture.");
+        setPaintNote(resting);
       }
     } catch {
-      // A failed repaint never takes away the picture the chapter already has.
-      setPaintNote("The painter is taking a rest right now. The chapter keeps its picture.");
+      setPaintNote(resting);
     } finally {
       setPainting(false);
     }
@@ -71,7 +80,7 @@ export default function ChapterPage() {
         <AppBackdrop />
         <AppHeader back={{ href: "/book", label: "Family book" }} />
         <main className="mx-auto max-w-2xl px-5 pt-16">
-          <BirdySays>I can&apos;t find that chapter on this device.</BirdySays>
+          <BirdySays>I can&apos;t find that storybook on this device.</BirdySays>
           <Link href="/book" className="btn-lantern pixel-corners mt-6 inline-flex h-12 items-center px-6 font-extrabold">
             Back to the family book
           </Link>
@@ -88,6 +97,7 @@ export default function ChapterPage() {
     deleteChapter(stored.id);
     void removeChapterRemote(stored, loadBook()?.id);
     await deleteClips(stored.turns.map((t) => t.clipId).filter((x): x is string => Boolean(x)));
+    await deleteImages([stored.imageUrl, ...(stored.pageImages ?? [])]);
     router.push("/book");
   }
 
@@ -99,17 +109,17 @@ export default function ChapterPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleNewPicture}
+              onClick={handleNewPictures}
               disabled={painting}
-              aria-label="Paint a new picture"
+              aria-label="Paint new pictures for every page"
               className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15 disabled:opacity-50"
             >
               <Sparkles size={15} className={painting ? "animate-spin text-lantern" : "text-lantern-soft"} />
-              <span className="hidden sm:inline">{painting ? "Painting..." : "New picture"}</span>
+              <span className="hidden sm:inline">{painting ? "Painting..." : "New pictures"}</span>
             </button>
             <Link
               href={`/book/print?chapter=${stored.id}`}
-              aria-label="Download this chapter as a PDF"
+              aria-label="Download this storybook as a PDF"
               className="glass-night inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon hover:bg-white/15"
             >
               <Download size={15} />
@@ -127,7 +137,7 @@ export default function ChapterPage() {
         )}
       </AppHeader>
 
-      <main className="mx-auto max-w-5xl px-5 pb-24 pt-8">
+      <main className="mx-auto max-w-6xl px-5 pb-24 pt-8">
         {paintNote && (
           <div className="glass-night mb-6 flex items-center justify-between rounded-2xl px-5 py-3 text-sm text-moon/90">
             <p>{paintNote}</p>
@@ -140,7 +150,7 @@ export default function ChapterPage() {
         {painting && (
           <div className="glass-night mb-6 flex items-center justify-center gap-3 rounded-2xl p-4 text-moon/90">
             <PixelLantern size={28} />
-            <span className="font-display">Hudhud is painting a new scene...</span>
+            <span className="font-display">Hudhud is painting every page again...</span>
           </div>
         )}
 
@@ -155,7 +165,10 @@ export default function ChapterPage() {
             }}
           />
         ) : (
-          <ChapterView stored={stored} elder={elder} />
+          <>
+            <StoryBook stored={stored} elder={elder} />
+            <BehindTheStory stored={stored} who={elder ? elderLabel(elder) : "the storyteller"} />
+          </>
         )}
 
         {!editing && (
@@ -165,7 +178,7 @@ export default function ChapterPage() {
             </Link>
             {confirmDelete ? (
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-sm text-moon/80">Delete this chapter and its recordings for good?</span>
+                <span className="text-sm text-moon/80">Delete this storybook and its recordings for good?</span>
                 <button type="button" onClick={remove} className="h-10 rounded-full bg-terracotta px-4 text-sm font-bold text-moon hover:bg-ajrak">
                   Yes, delete
                 </button>
@@ -179,7 +192,7 @@ export default function ChapterPage() {
                 onClick={() => setConfirmDelete(true)}
                 className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-moon/60 hover:text-terracotta"
               >
-                <Trash2 size={15} /> Delete chapter
+                <Trash2 size={15} /> Delete storybook
               </button>
             )}
           </div>
@@ -190,19 +203,35 @@ export default function ChapterPage() {
   );
 }
 
-/** Families fix what the AI misheard: a name, a place, a year. */
+/** Families fix what the AI misheard: a name, a place, a year. Page by page, so the book keeps its shape. */
 function EditChapter({ stored, onSave, onCancel }: { stored: StoredChapter; onSave: (c: StoredChapter) => void; onCancel: () => void }) {
   const c = stored.chapter;
   const [titleEn, setTitleEn] = useState(c.title.en);
   const [titleUr, setTitleUr] = useState(c.title.ur);
-  const [bodyUr, setBodyUr] = useState(c.body.ur);
-  const [bodyEn, setBodyEn] = useState(c.body.en);
+  const [pages, setPages] = useState<Page[]>(() => bookPages(stored).map(({ ur, en, scene, sourceTurns }) => ({ ur, en, scene, sourceTurns })));
+  const setPage = (i: number, patch: Partial<Page>) => setPages((list) => list.map((p, j) => (j === i ? { ...p, ...patch } : p)));
 
   const input = "mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-moon focus:border-lantern focus:outline-none";
 
+  function save() {
+    // A page emptied in the editor is removed, and its painting goes with it so pictures stay on their pages.
+    const kept = pages.map((p, i) => ({ p: { ...p, ur: p.ur.trim(), en: p.en.trim() }, i })).filter(({ p }) => p.ur || p.en);
+    const clean = kept.map(({ p }) => p);
+    onSave({
+      ...stored,
+      pageImages: stored.pageImages ? kept.map(({ i }) => stored.pageImages?.[i] ?? null) : undefined,
+      chapter: {
+        ...c,
+        title: { en: titleEn.trim(), ur: titleUr.trim() },
+        pages: clean,
+        body: { ur: clean.map((p) => p.ur).filter(Boolean).join("\n\n"), en: clean.map((p) => p.en).filter(Boolean).join("\n\n") },
+      },
+    });
+  }
+
   return (
     <section className="glass-night rounded-[32px] p-6 sm:p-9">
-      <h1 className="font-display text-3xl text-moon">Edit chapter</h1>
+      <h1 className="font-display text-3xl text-moon">Edit storybook</h1>
       <p className="mt-1 text-moon/65">Fix anything Hudhud misheard. The original recordings stay exactly as they were.</p>
       <div className="mt-7 grid gap-6 lg:grid-cols-2">
         <label className="block">
@@ -213,29 +242,29 @@ function EditChapter({ stored, onSave, onCancel }: { stored: StoredChapter; onSa
           <span className="text-sm font-bold text-moon">Title (Urdu)</span>
           <input value={titleUr} onChange={(e) => setTitleUr(e.target.value.slice(0, 120))} dir="rtl" lang="ur" className={`${input} font-urdu text-xl leading-[2]`} />
         </label>
-        <label className="block">
-          <span className="text-sm font-bold text-moon">Story (Urdu)</span>
-          <textarea value={bodyUr} onChange={(e) => setBodyUr(e.target.value)} rows={12} dir="rtl" lang="ur" className={`${input} font-urdu text-lg leading-[2.2]`} />
-        </label>
-        <label className="block">
-          <span className="text-sm font-bold text-moon">Story (English)</span>
-          <textarea value={bodyEn} onChange={(e) => setBodyEn(e.target.value)} rows={12} className={`${input} font-display text-lg leading-[1.8]`} />
-        </label>
       </div>
+      <ol className="mt-8 space-y-6">
+        {pages.map((p, i) => (
+          <li key={i} className="rounded-[24px] bg-white/5 p-5">
+            <p className="font-pixel text-sm text-lantern">Page {i + 1}</p>
+            <div className="mt-2 grid gap-4 lg:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-bold text-moon">Urdu</span>
+                <textarea value={p.ur} onChange={(e) => setPage(i, { ur: e.target.value })} rows={5} dir="rtl" lang="ur" className={`${input} font-urdu text-lg leading-[2.2]`} />
+              </label>
+              <label className="block">
+                <span className="text-sm font-bold text-moon">English</span>
+                <textarea value={p.en} onChange={(e) => setPage(i, { en: e.target.value })} rows={5} className={`${input} font-display text-lg leading-[1.8]`} />
+              </label>
+            </div>
+          </li>
+        ))}
+      </ol>
       <div className="mt-8 flex flex-wrap justify-end gap-3">
         <button type="button" onClick={onCancel} className="h-12 rounded-2xl px-5 font-bold text-moon/80 hover:text-moon">
           Cancel
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            onSave({
-              ...stored,
-              chapter: { ...c, title: { en: titleEn.trim(), ur: titleUr.trim() }, body: { ur: bodyUr.trim(), en: bodyEn.trim() } },
-            })
-          }
-          className="btn-lantern pixel-corners h-12 px-7 font-extrabold"
-        >
+        <button type="button" onClick={save} className="btn-lantern pixel-corners h-12 px-7 font-extrabold">
           Save changes
         </button>
       </div>

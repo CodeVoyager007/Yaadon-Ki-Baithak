@@ -61,6 +61,15 @@ class PullQuote(Wire):
     turn_index: int
 
 
+class Page(Wire):
+    """One page of the storybook: a few sentences in both languages and the scene painted beside them."""
+
+    ur: str = ""
+    en: str = ""
+    scene: Optional[str] = None
+    source_turns: list[int] = Field(default_factory=list)
+
+
 class Chapter(Wire):
     title: Bilingual
     body: Bilingual
@@ -70,6 +79,7 @@ class Chapter(Wire):
     place: Optional[str] = None
     unclear: list[str] = Field(default_factory=list)  # marked [unclear] in the body, never guessed
     scene: Optional[str] = None  # one calm visual scene for the illustrator
+    pages: list[Page] = Field(default_factory=list)  # the storybook, in reading order
 
 
 class IllustrationRequest(Wire):

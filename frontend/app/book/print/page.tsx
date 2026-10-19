@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Download } from "lucide-react";
+import { StoryImage } from "@/components/book/StoryImage";
 import { SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { PixelLantern } from "@/components/effects/PixelLantern";
+import { bookPages, coverImage } from "@/lib/book-pages";
 import { elderLabel, loadBook, type FamilyBook } from "@/lib/book-store";
 import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { syncBook } from "@/lib/data/sync";
@@ -68,7 +70,9 @@ function PrintBook() {
           }),
     );
     const timeout = new Promise((r) => setTimeout(r, 8000));
-    void Promise.race([Promise.all([document.fonts.ready, ...loaded]), timeout]).then(() => live && window.print());
+    // A short pause first lets paintings kept on this device swap in for their placeholders.
+    const settle = new Promise((r) => setTimeout(r, 400));
+    void Promise.race([Promise.all([document.fonts.ready, settle, ...loaded]), timeout]).then(() => live && window.print());
     return () => {
       live = false;
     };
@@ -84,8 +88,7 @@ function PrintBook() {
 
   const elderOf = (id: string) => book?.elders.find((e) => e.id === id) ?? null;
   const tellers = [...new Set(chapters.map((c) => elderOf(c.elderId)).filter(Boolean).map((e) => elderLabel(e!)))];
-  const coverFallback = chapters[0] ? SCENE_IMAGES[chapters[0].scene].src : null;
-  const coverImg = chapters[0]?.imageUrl ?? coverFallback;
+  const first = chapters[0];
 
   return (
     <div className="min-h-[100svh] bg-[#2b2d5c] pb-16 print:bg-white print:pb-0">
@@ -106,7 +109,7 @@ function PrintBook() {
 
       {!book || !chapters.length ? (
         <p className="mx-auto mt-24 max-w-md px-5 text-center text-moon/80">
-          {book ? "There are no chapters to print yet. Record a story first." : "We couldn't find a family book on this device."}
+          {book ? "There are no storybooks to print yet. Record a story first." : "We couldn't find a family book on this device."}
         </p>
       ) : (
         <div className="print-book mx-auto mt-8 flex max-w-[210mm] flex-col gap-8 px-3 text-[#24160e] print:mt-0 print:max-w-none print:gap-0 print:px-0">
@@ -117,19 +120,15 @@ function PrintBook() {
               </p>
               <h1 className="font-display mt-4 text-5xl leading-tight">{book.familyName}</h1>
               <p className="mt-3 text-lg text-[#5a4636]">A family book of remembered stories</p>
-              {coverImg && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={coverImg}
-                  alt=""
-                  onError={(e) => {
-                    if (coverFallback && !e.currentTarget.src.endsWith(coverFallback)) e.currentTarget.src = coverFallback;
-                  }}
+              {first && (
+                <StoryImage
+                  src={coverImage(first)}
+                  fallback={SCENE_IMAGES[first.scene].src}
                   className="mt-10 aspect-[4/3] w-full max-w-md rounded-md object-cover"
                 />
               )}
               <p className="mt-10 text-base text-[#5a4636]">
-                {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}
+                {chapters.length} {chapters.length === 1 ? "storybook" : "storybooks"}
                 {tellers.length ? `, told by ${tellers.join(", ")}` : ""}
               </p>
               <p className="mt-1 text-sm text-[#7a5a3a]">{longDate(new Date().toISOString())}</p>
@@ -145,68 +144,74 @@ function PrintBook() {
   );
 }
 
+/** One storybook on paper: a title page, then one page per story page with its painting above the words. */
 function PrintChapter({ stored, teller, family }: { stored: StoredChapter; teller: string; family: string }) {
   const { chapter } = stored;
-  const ur = paragraphs(chapter.body.ur);
-  const en = paragraphs(chapter.body.en);
-  const fallback = SCENE_IMAGES[stored.scene].src;
+  const pages = bookPages(stored);
+  const coverFallback = SCENE_IMAGES[stored.scene].src;
 
   return (
-    <article className="print-page rounded-md bg-[#fbf3e4] px-10 py-12 shadow-2xl">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={stored.imageUrl ?? fallback}
-        alt=""
-        onError={(e) => {
-          if (!e.currentTarget.src.endsWith(fallback)) e.currentTarget.src = fallback;
-        }}
-        className="aspect-[16/9] w-full rounded-md object-cover"
-      />
-      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 className="font-display text-3xl leading-tight">{chapter.title.en}</h2>
-        {chapter.year && <span className="font-display text-lg text-[#9e2b25]">{chapter.year}</span>}
-      </div>
-      {chapter.title.ur && (
-        <p className="font-urdu mt-1 text-2xl leading-[2] text-[#9e2b25]" dir="rtl" lang="ur">
-          {chapter.title.ur}
-        </p>
-      )}
-      <p className="mt-1 text-sm text-[#5a4636]">
-        Told by {teller}
-        {chapter.place ? `, ${chapter.place}` : ""}. Recorded {longDate(stored.createdAt)}. {voiceLength(stored.turns)} of voice.
-        {stored.draft ? " Draft: the transcript, word for word." : ""}
-      </p>
-
-      {chapter.pullQuote && (
-        <blockquote className="my-6 border-s-4 border-[#c8553d] ps-4" dir="auto">
-          <p className={`${/[؀-ۿ]/.test(chapter.pullQuote.text) ? "font-urdu text-xl leading-[2.1]" : "font-display text-xl italic"}`}>
-            &ldquo;{chapter.pullQuote.text}&rdquo;
+    <>
+      <section className="print-page print-cover flex min-h-[287mm] flex-col items-center justify-center rounded-md bg-[#fbf3e4] px-10 py-14 text-center shadow-2xl">
+        <StoryImage src={coverImage(stored)} fallback={coverFallback} className="aspect-[4/3] w-full max-w-lg rounded-md object-cover" />
+        {chapter.title.ur && (
+          <p className="font-urdu mt-8 text-3xl leading-[2] text-[#9e2b25]" dir="rtl" lang="ur">
+            {chapter.title.ur}
           </p>
-        </blockquote>
-      )}
-
-      {ur.length > 0 && (
-        <div className="mt-5 space-y-3" dir="rtl" lang="ur">
-          {ur.map((p, i) => (
-            <p key={i} className="font-urdu text-lg leading-[2.3]">
-              {p}
+        )}
+        <h2 className="font-display mt-1 text-4xl leading-tight">{chapter.title.en}</h2>
+        <p className="mt-4 text-[#5a4636]">
+          Told by {teller}
+          {chapter.place ? `, ${chapter.place}` : ""}
+          {chapter.year ? `, ${chapter.year}` : ""}
+        </p>
+        <p className="mt-1 text-sm text-[#7a5a3a]">
+          Recorded {longDate(stored.createdAt)} · {voiceLength(stored.turns)} of voice{stored.draft ? " · draft, the story word for word" : ""}
+        </p>
+        {chapter.pullQuote && (
+          <blockquote className="mt-8 max-w-md border-s-4 border-[#c8553d] ps-4 text-start" dir="auto">
+            <p className={/[\u0600-\u06FF]/.test(chapter.pullQuote.text) ? "font-urdu text-xl leading-[2.1]" : "font-display text-xl italic"}>
+              &ldquo;{chapter.pullQuote.text}&rdquo;
             </p>
-          ))}
-        </div>
-      )}
-      {en.length > 0 && (
-        <div className={`space-y-3 ${ur.length ? "mt-6 border-t border-[#c9ad7f]/60 pt-5" : "mt-5"}`}>
-          {en.map((p, i) => (
-            <p key={i} className="font-display text-base leading-relaxed">
-              {p}
-            </p>
-          ))}
-        </div>
-      )}
+          </blockquote>
+        )}
+      </section>
 
-      <p className="mt-8 border-t border-[#c9ad7f]/60 pt-3 text-xs text-[#7a5a3a]">
-        {family} · Yaadon ki Baithak · Recorded in {teller}&apos;s own voice; only their words are used.
-      </p>
-    </article>
+      {pages.map((p, i) => {
+        const ur = paragraphs(p.ur);
+        const en = paragraphs(p.en);
+        return (
+          <article key={i} className="print-page rounded-md bg-[#fbf3e4] px-10 py-12 shadow-2xl">
+            <StoryImage src={p.image} fallback={p.fallback} className="aspect-[4/3] w-full rounded-md object-cover" />
+            {ur.length > 0 && (
+              <div className="mt-6 space-y-2" dir="rtl" lang="ur">
+                {ur.map((t, j) => (
+                  <p key={j} className="font-urdu text-xl leading-[2.3]">
+                    {t}
+                  </p>
+                ))}
+              </div>
+            )}
+            {en.length > 0 && (
+              <div className={`space-y-2 ${ur.length ? "mt-5 border-t border-[#c9ad7f]/60 pt-4" : "mt-6"}`}>
+                {en.map((t, j) => (
+                  <p key={j} className="font-display text-lg leading-relaxed">
+                    {t}
+                  </p>
+                ))}
+              </div>
+            )}
+            <p className="mt-8 flex justify-between border-t border-[#c9ad7f]/60 pt-3 text-xs text-[#7a5a3a]">
+              <span>
+                {family} · {chapter.title.en || chapter.title.ur}
+              </span>
+              <span>
+                {i + 1} / {pages.length}
+              </span>
+            </p>
+          </article>
+        );
+      })}
+    </>
   );
 }

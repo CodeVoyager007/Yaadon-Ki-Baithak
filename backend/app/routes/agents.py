@@ -87,19 +87,25 @@ async def chapter(request: Request):
     return {
         "chapter": out.chapter.model_dump(by_alias=True, exclude_none=True),
         "imageUrl": out.image_url,
+        "pageImages": out.page_images,
         "trace": [t.model_dump(by_alias=True) for t in out.trace],
     }
 
 
 @router.post("/illustrate")
 async def illustrate(request: Request):
-    """Body: { chapter, familySeed } -> { imageUrl?, trace }. Paints an existing chapter again."""
+    """Body: { chapter: { title, scene?, year?, place?, pages?: [{ scene }] }, familySeed }
+    -> { imageUrl?, pageImages, trace }. Paints an existing book again, page by page."""
     caller = await require_caller(request, "illustrate")
     body = await read_json(request)
     brief = clean_painting_brief(body.get("chapter"))
     try:
-        image_url, trace = await _orchestrator(caller.user_id).paint_chapter(brief, clean_seed(body.get("familySeed")))
+        page_images, trace = await _orchestrator(caller.user_id).paint_chapter(brief, clean_seed(body.get("familySeed")))
     except Exception as err:
         log.error("[api/illustrate] %s", err)
         raise provider_failed("The illustrator") from None
-    return {"imageUrl": image_url, "trace": [t.model_dump(by_alias=True) for t in trace]}
+    return {
+        "imageUrl": next((u for u in page_images if u), None),
+        "pageImages": page_images,
+        "trace": [t.model_dump(by_alias=True) for t in trace],
+    }

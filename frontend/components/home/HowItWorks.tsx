@@ -13,7 +13,7 @@ const STEPS = [
   },
   {
     icon: BookOpen,
-    title: "A chapter appears",
+    title: "A storybook appears",
     body: "A story writer uses only their words, an illustrator paints the scene, and their real voice stays beside the page, ready to share.",
   },
 ];

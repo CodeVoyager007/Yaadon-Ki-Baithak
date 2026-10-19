@@ -10,6 +10,8 @@ import { BookNav } from "@/components/app/BookNav";
 import { BirdySays } from "@/components/app/SpeechBubble";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { writeAndIllustrate } from "@/lib/api";
+import { bookPages } from "@/lib/book-pages";
+import { keepImage } from "@/lib/image-store";
 import { elderLabel, getElder, loadBook, newId } from "@/lib/book-store";
 import { getChapterForSession, getSession, saveChapter, voiceLength, type StoredChapter } from "@/lib/chapter-store";
 import { THEMES } from "@/lib/themes";
@@ -30,7 +32,7 @@ export default function WritingPage() {
 /**
  * The agents at work, shown step by step. This is the "AI agent" moment
  * in the demo: listening back, writing only from the elder's words,
- * painting, and binding the chapter into the book.
+ * painting every page, and putting the storybook on the family's shelf.
  */
 function Writing() {
   const params = useSearchParams();
@@ -64,9 +66,9 @@ function Writing() {
     setWho(name);
     const labels = [
       `Listening back to ${name}`,
-      `Writing the chapter, using only ${elder.name}'s words`,
-      "Painting the picture",
-      "Binding it into your family book",
+      `Writing the storybook, using only ${elder.name}'s words`,
+      "Painting every page",
+      "Binding it into your family's bookshelf",
     ];
     setSteps(labels.map((label) => ({ label, state: "waiting" })));
     const mark = (i: number, state: StepState) => setSteps((s) => s.map((x, j) => (j === i ? { ...x, state } : x)));
@@ -102,7 +104,16 @@ function Writing() {
 
       mark(2, "working");
       await pause(400);
-      say(written.imageUrl ? "Painted in the family book's style." : "Using the topic's painting for now — the illustrator isn't available.");
+      const pageCount = written.chapter.pages?.length ?? 0;
+      const painted = written.pageImages.filter(Boolean).length;
+      say(
+        painted
+          ? `${painted} of ${pageCount} pages painted in the family book's style.`
+          : "Using themed paintings for now — the illustrator isn't available.",
+      );
+      // Paintings made without cloud storage are kept in this browser's image store, not localStorage.
+      const pageImages = await Promise.all(written.pageImages.map((u) => keepImage(u)));
+      const cover = (await keepImage(written.imageUrl)) ?? pageImages.find(Boolean) ?? undefined;
       mark(2, "done");
 
       mark(3, "working");
@@ -116,13 +127,14 @@ function Writing() {
         createdAt: new Date().toISOString(),
         chapter: written.chapter,
         turns: session.turns,
-        imageUrl: written.imageUrl,
+        imageUrl: cover,
+        pageImages,
         draft: written.source !== "ai",
       };
       saveChapter(stored);
       await pause(500);
       mark(3, "done");
-      say("Saved. Only your family can see it.");
+      say(`A ${bookPages(stored).length}-page storybook is on your shelf. Only your family can see it.`);
       setDoneId(stored.id);
       setTimeout(() => router.push(`/book/chapter/${stored.id}`), 1600);
     })().catch(() => setFailed("Something went wrong while writing. The recording is safe; try again from your book."));
@@ -134,7 +146,7 @@ function Writing() {
       <AppHeader back={{ href: "/book", label: "Family book" }} />
       <main className="mx-auto max-w-2xl px-5 pb-20 pt-10">
         <BirdySays mood={doneId ? "happy" : "listening"}>
-          {failed ?? (doneId ? `${who}'s chapter is ready.` : `Turning ${who}'s answers into a chapter.`)}
+          {failed ?? (doneId ? `${who}'s storybook is ready.` : `Turning ${who}'s story into a storybook.`)}
         </BirdySays>
 
         {!failed && (
@@ -170,7 +182,7 @@ function Writing() {
 
             {doneId && (
               <Link href={`/book/chapter/${doneId}`} className="btn-lantern pixel-corners mt-7 inline-flex h-14 items-center px-7 font-extrabold">
-                Open the chapter
+                Open the storybook
               </Link>
             )}
           </section>

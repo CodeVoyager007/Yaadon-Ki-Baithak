@@ -99,3 +99,17 @@ Don't:
 
 When generating UI for this project:
 "Use the Shaam ki Kahani tokens from DESIGN.md. Everything is dark: glass-night panels over the indigo AppBackdrop or NightSky. Use the painted scenes, never flat clip-art. One btn-lantern per screen. Urdu in Noto Nastaliq with rtl and line-height 2. Pixel font only for numbers. Use Hudhud (BirdySays) to explain each step instead of helper text. Loading = PixelLantern. No all-caps, no arrows in buttons, no identical card grids."
+
+## Storybooks
+
+- Every story is its own storybook (`components/book/StoryBook.tsx`): a cover, one spread per page (the painting
+  on the left, Urdu then English on the right, a button to hear that part in the elder's own voice) and an end
+  page with a line in their voice. On wide screens the leaf turns over the spine (motion, 0.75 s); on phones it is
+  one page at a time with a short slide. Buttons, the page dots, ← → keys and swipes all turn pages. Reduced
+  motion changes pages without the turn.
+- Paper is `.storybook-paper` (cream), framed in the ajrak border on a dark leather board, like Dadi's book on
+  the home page.
+- `lib/book-pages.ts` turns any saved story into pages: the writer's pages, else the body cut at paragraph
+  breaks. A page without a painting shows one of the painted theme scenes, in turn, so pages never look alike.
+- The family book page is a bookshelf of covers (`BookCover`), filterable by storyteller.
+- Under the book, "Behind the story" keeps every recording and transcript: the proof that nothing was invented.

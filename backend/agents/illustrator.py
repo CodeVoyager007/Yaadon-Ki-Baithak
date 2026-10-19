@@ -57,6 +57,8 @@ def illustration_request(
     scene: Optional[str] = None,
     year: Optional[str] = None,
     place: Optional[str] = None,
+    width: int = 1024,
+    height: int = 1024,
 ) -> IllustrationRequest:
     where = f", in {place}" if place else ""
     when = f", around {year}" if year else ""
@@ -65,4 +67,6 @@ def illustration_request(
         negative_prompt=NEGATIVE,
         # Same seed per family keeps faces and palette consistent across chapters.
         seed=family_seed,
+        width=width,
+        height=height,
     )

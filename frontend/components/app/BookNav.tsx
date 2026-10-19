@@ -7,7 +7,7 @@ import { Home, Mic, BookOpen, User } from "lucide-react";
 const BOOK_LINKS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/record", label: "Record", icon: Mic },
-  { href: "/book", label: "Chapters", icon: BookOpen },
+  { href: "/book", label: "Bookshelf", icon: BookOpen },
   { href: "/book/elders/new", label: "Add elder", icon: User },
 ];
 

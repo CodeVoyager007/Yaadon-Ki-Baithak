@@ -172,3 +172,27 @@ def test_interview_mode_will_not_end_after_one_answer():
     model = FakeModel(CLEAR, GOOD)
     decision, _ = run(run_interviewer(model, ELDER, "Free talk", [birdy("Where?"), said("Lahore")]))
     assert decision.action == "follow_up" and "too early" in model.calls[1][1]
+
+
+
+def test_writer_pages_become_the_body_and_keep_only_real_source_lines():
+    turns = [said("Near Anarkali.", 1), said("Cardamom and wet earth after rain.", 3)]
+    raw = {
+        **CHAPTER,
+        "pages": [
+            {"ur": "پہلا صفحہ", "en": "Page one.", "scene": "a bazaar", "sourceTurns": [1, 99]},
+            {"ur": "", "en": ""},
+            {"ur": "دوسرا صفحہ", "en": "Page two.", "scene": "rain", "sourceTurns": [3]},
+        ],
+    }
+    chapter = parse_chapter(raw, turns)
+    assert [p.en for p in chapter.pages] == ["Page one.", "Page two."]
+    assert chapter.pages[0].source_turns == [1]
+    assert chapter.body.en == "Page one.\n\nPage two."
+
+
+def test_a_plain_body_is_cut_into_pages():
+    paragraphs = "\n\n".join(f"Paragraph {i}." for i in range(12))
+    chapter = parse_chapter({**CHAPTER, "body": {"ur": "", "en": paragraphs}}, [said("hello", 1)])
+    assert 1 < len(chapter.pages) <= 8
+    assert "Paragraph 11." in chapter.pages[-1].en

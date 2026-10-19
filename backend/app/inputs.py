@@ -12,7 +12,7 @@ from fastapi import Request
 
 import re
 
-from agents import Bilingual, Chapter, ElderProfile, Turn
+from agents import Bilingual, Chapter, ElderProfile, Page, Turn
 
 from .errors import bad_body
 
@@ -88,20 +88,27 @@ def clean_theme(raw: Any) -> str:
 
 
 def clean_painting_brief(raw: Any) -> Chapter:
-    """Only what the illustrator reads from a stored chapter (title, scene, year, place), clamped.
-    The chapter body never goes to the painter."""
+    """Only what the illustrator reads from a stored chapter (title, scene, year, place and each
+    page's scene), clamped. The story's words never go to the painter."""
     c = raw if isinstance(raw, dict) else {}
     title = c.get("title") if isinstance(c.get("title"), dict) else {}
     en, ur = _short(title.get("en"), 120), _short(title.get("ur"), 120)
     if not en and not ur:
         raise bad_body()
     year = _short(c.get("year"), 8)
+    raw_pages = c.get("pages") if isinstance(c.get("pages"), list) else []
+    pages = [
+        Page(scene=_short(p.get("scene"), 300) or None)
+        for p in raw_pages[:8]
+        if isinstance(p, dict)
+    ]
     return Chapter(
         title=Bilingual(en=en, ur=ur),
         body=Bilingual(en="", ur=""),
         scene=_short(c.get("scene"), 300) or None,
         year=year if re.fullmatch(r"1[89]\d\d|20\d\d", year) else None,
         place=_short(c.get("place"), 60) or None,
+        pages=pages,
     )
 
 

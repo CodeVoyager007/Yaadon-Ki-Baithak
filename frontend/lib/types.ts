@@ -49,6 +49,14 @@ export type Signals = {
   told?: boolean;
 };
 
+/** One page of the storybook: a few sentences in both languages and the scene painted beside them. */
+export type Page = {
+  ur: string;
+  en: string;
+  scene?: string;
+  sourceTurns: number[];
+};
+
 export type Chapter = {
   title: { ur: string; en: string };
   body: { ur: string; en: string };
@@ -60,6 +68,8 @@ export type Chapter = {
   unclear?: string[];
   /** The scene the illustrator painted. */
   scene?: string;
+  /** The storybook, in reading order. Older chapters have none and are split from the body. */
+  pages?: Page[];
 };
 
 /** One step the orchestrator took, for an "agent thinking" panel. */

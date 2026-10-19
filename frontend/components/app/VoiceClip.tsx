@@ -22,11 +22,14 @@ export function VoiceClip({
   audioPath,
   durationMs,
   label = "Play their voice",
+  tone = "night",
 }: {
   clipId?: string;
   audioPath?: string;
   durationMs?: number;
   label?: string;
+  /** "paper" for the cream pages of a storybook. */
+  tone?: "night" | "paper";
 }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -101,10 +104,14 @@ export function VoiceClip({
       </button>
       <div className="flex h-7 flex-1 items-center gap-[3px]" aria-hidden>
         {bars.map((h, i) => (
-          <span key={i} className={`w-[3px] ${i / bars.length < progress ? "bg-lantern" : "bg-lantern/35"}`} style={{ height: `${h}%` }} />
+          <span
+            key={i}
+            className={`w-[3px] ${i / bars.length < progress ? (tone === "paper" ? "bg-terracotta" : "bg-lantern") : tone === "paper" ? "bg-[#7a5a3a]/30" : "bg-lantern/35"}`}
+            style={{ height: `${h}%` }}
+          />
         ))}
       </div>
-      <span className="font-pixel w-10 text-right text-sm text-moon/70">{missing ? "n/a" : fmt(durationMs)}</span>
+      <span className={`font-pixel w-10 text-right text-sm ${tone === "paper" ? "text-[#5a4636]" : "text-moon/70"}`}>{missing ? "n/a" : fmt(durationMs)}</span>
     </div>
   );
 }

@@ -9,7 +9,7 @@ const PROMISES = [
   {
     icon: AudioLines,
     title: "Their real voice",
-    body: "Every chapter plays the elder's own recording. We never copy, clone or fake anyone's voice.",
+    body: "Every storybook plays the elder's own recording. We never copy, clone or fake anyone's voice.",
   },
   {
     icon: BookOpenCheck,

@@ -4,16 +4,16 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { AJRAK_BORDER } from "@/components/app/AppBackdrop";
 import { BirdySays } from "@/components/app/SpeechBubble";
-import { ChapterView } from "@/components/app/ChapterView";
+import { BehindTheStory } from "@/components/book/BehindTheStory";
+import { BookCover } from "@/components/book/BookCover";
+import { StoryBook } from "@/components/book/StoryBook";
 import { Wordmark } from "@/components/brand/Wordmark";
-import { SCENE_IMAGES } from "@/components/illustrations/SceneByName";
 import { PixelLantern } from "@/components/effects/PixelLantern";
 import { NightSky } from "@/components/scene/NightSky";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 import { elderLabel, loadBook, type FamilyBook, type Language, type Relation, type Theme } from "@/lib/book-store";
-import { listChapters, voiceLength, type StoredChapter } from "@/lib/chapter-store";
+import { listChapters, type StoredChapter } from "@/lib/chapter-store";
 import { apiUrl, hasBackend } from "@/lib/api";
 import { THEMES } from "@/lib/themes";
 
@@ -36,6 +36,7 @@ type SharedChapter = {
   chapter: StoredChapter["chapter"];
   turns: SharedTurn[];
   imageUrl?: string;
+  pageImages?: (string | null)[];
 };
 type SharedBook = {
   familyName: string;
@@ -99,6 +100,7 @@ export default function SharePage() {
                 at: t.at,
               })),
               imageUrl: c.imageUrl,
+              pageImages: c.pageImages,
             })),
           );
           return;
@@ -144,9 +146,10 @@ export default function SharePage() {
         {book && opened && (
           <>
             <button type="button" onClick={() => setOpen(null)} className="mb-6 inline-flex items-center gap-1.5 font-bold text-lantern-soft hover:underline">
-              <ArrowLeft size={16} /> All chapters
+              <ArrowLeft size={16} /> All storybooks
             </button>
-            <ChapterView stored={opened} elder={elderOf(opened.elderId)} />
+            <StoryBook stored={opened} elder={elderOf(opened.elderId)} />
+            <BehindTheStory stored={opened} who={elderOf(opened.elderId) ? elderLabel(elderOf(opened.elderId)!) : "the storyteller"} />
           </>
         )}
 
@@ -158,37 +161,21 @@ export default function SharePage() {
               </p>
               <h1 className="font-display mt-2 text-4xl leading-tight sm:text-6xl">{book.familyName}</h1>
               <p className="mt-3 text-moon/75">
-                Told by {book.elders.map((e) => elderLabel(e)).join(", ")}. {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}.
+                Told by {book.elders.map((e) => elderLabel(e)).join(", ")}. {chapters.length} {chapters.length === 1 ? "storybook" : "storybooks"}.
               </p>
             </div>
             {chapters.length === 0 ? (
-              <p className="glass-night mx-auto mt-10 max-w-md rounded-2xl p-6 text-center text-moon/75">The first chapter is still being recorded.</p>
+              <p className="glass-night mx-auto mt-10 max-w-md rounded-2xl p-6 text-center text-moon/75">The first storybook is still being recorded.</p>
             ) : (
-              <div className="mt-10 grid gap-6 sm:grid-cols-2">
+              <ul className="mt-10 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
                 {chapters.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setOpen(c.id)}
-                    className="group overflow-hidden rounded-[28px] p-[6px] text-left transition hover:-translate-y-0.5"
-                    style={AJRAK_BORDER}
-                  >
-                    <div className="overflow-hidden rounded-[23px] bg-dusk">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.imageUrl ?? SCENE_IMAGES[c.scene].src} alt="" className="h-48 w-full object-cover" />
-                      <div className="p-5">
-                        <h2 className="font-display text-2xl leading-tight">{c.chapter.title.en}</h2>
-                        <p className="font-urdu mt-1 text-xl leading-[1.9] text-lantern-soft" dir="rtl" lang="ur" style={{ textAlign: "left" }}>
-                          {c.chapter.title.ur}
-                        </p>
-                        <p className="mt-1 text-sm text-moon/65">
-                          {elderOf(c.elderId) ? elderLabel(elderOf(c.elderId)!) : "Storyteller"}, {voiceLength(c.turns)} of voice
-                        </p>
-                      </div>
-                    </div>
-                  </button>
+                  <li key={c.id}>
+                    <button type="button" onClick={() => setOpen(c.id)} className="block w-full rounded-[14px] text-left focus-visible:outline-4 focus-visible:outline-lantern">
+                      <BookCover stored={c} teller={elderOf(c.elderId) ? elderLabel(elderOf(c.elderId)!) : "Storyteller"} />
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
             <p className="mt-14 text-center text-sm text-moon/55">
               Made with{" "}
