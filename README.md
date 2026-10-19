@@ -11,7 +11,6 @@ Built for the **NYLP AI Hackathon 2026**: *Build AI for Real-World Impact*.
 | **Backend API** | https://yaadon-ki-baithak.onrender.com ([health check](https://yaadon-ki-baithak.onrender.com/health); the free plan sleeps when idle and takes up to a minute to wake) |
 | **Demo video** | _add the video link here_ |
 | **Repository** | https://github.com/CodeVoyager007/Yaadon-Ki-Baithak |
-| **Documentation (PDF)** | [docs/Yaadon-ki-Baithak-Documentation.pdf](docs/Yaadon-ki-Baithak-Documentation.pdf) |
 
 ![Home](docs/screenshots/1-home.jpg)
 
