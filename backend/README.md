@@ -201,7 +201,7 @@ when the site opens so it's awake by the time anyone records.
    git remote add space https://huggingface.co/spaces/YOUR-USER/baithak-api
    git subtree push --prefix backend space main
    ```
-4. Open `https://YOUR-USER-baithak-api.hf.space/health`, then set
+4. Open `https://YOUR-SPACE.hf.space/health`, then set
    `NEXT_PUBLIC_API_URL` to that origin in Vercel and redeploy the frontend.
 
 Free Spaces sleep after about 48 h without traffic. Open `/health` an hour before the demo.
