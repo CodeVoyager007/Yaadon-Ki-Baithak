@@ -413,3 +413,12 @@ html:has(.home-sky) { overscroll-behavior-y: none; background: #0a0a24; }
   color: transparent;
   filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.55));
 }
+
+/* Privacy policy and terms: readable long text on the night panel. */
+.legal h2 { font-family: var(--font-display, inherit); font-size: 1.45rem; color: var(--color-moon, #fff6dc); margin: 2rem 0 0.6rem; }
+.legal h2:first-child { margin-top: 0; }
+.legal p { margin: 0.7rem 0; }
+.legal ul { list-style: disc; padding-inline-start: 1.3rem; margin: 0.7rem 0; }
+.legal li { margin: 0.4rem 0; }
+.legal a { color: #ffd27a; text-decoration: underline; text-underline-offset: 3px; }
+.legal strong { color: #fff6dc; }

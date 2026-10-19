@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { ReplayIntro } from "./ReplayIntro";
 
@@ -10,6 +11,10 @@ export function SiteFooter() {
         <p className="text-sm text-moon/60">
           Made by Humema Israr, Ayesha and Faria for the NYLP AI Hackathon 2026.
         </p>
+        <nav aria-label="Legal" className="flex gap-4 text-sm text-moon/60">
+          <Link href="/privacy" className="hover:text-moon">Privacy</Link>
+          <Link href="/terms" className="hover:text-moon">Terms</Link>
+        </nav>
         <ReplayIntro />
         <p className="font-urdu text-lg text-lantern-soft" lang="ur" dir="rtl">
           یادوں کی بیٹھک
