@@ -22,15 +22,29 @@ import { THEMES } from "@/lib/themes";
 import { useRecorder } from "@/lib/use-recorder";
 
 type Phase = "loading" | "consent" | "session" | "done" | "not-found";
+/** First the elder tells the whole story; then Hudhud asks only about what's unclear. */
+type Stage = "telling" | "clarifying";
 type Question = { ur: string; en: string };
 
+/** One story part can run this long before it is saved and a new part begins. */
+const MAX_PART_MS = 10 * 60 * 1000;
+
+/** The theme's opening, turned into an invitation to tell the whole story. */
+function invitation(q: Question): Question {
+  return {
+    ur: `${q.ur} پوری کہانی اپنے الفاظ میں سنائیے، آرام سے۔ میں بیچ میں نہیں ٹوکوں گا۔`,
+    en: `${q.en} Tell the whole story in your own words, and take your time. I won't interrupt.`,
+  };
+}
+
 /**
- * Elder mode. Big type, one question at a time, one giant lamp to press.
+ * Elder mode. Big type, one giant lamp to press.
  *
- * With a family book: asks for consent once, then records every answer in
- * the elder's real voice, sends it to the interviewer agent and reads the
- * next question aloud. "Stop for today" hands the session to the writer.
- * Without a book it's a practice run: nothing is saved.
+ * With a family book: asks for consent once, then the elder tells the whole
+ * story in their real voice, in as many parts as they like, without being
+ * interrupted. When they say that's the story, Hudhud reads it and asks only
+ * about what a grandchild couldn't follow, a few questions at most, then the
+ * session goes to the writer. Without a book it's a practice run: nothing is saved.
  */
 export function RecordRoom() {
   const params = useSearchParams();
@@ -82,6 +96,10 @@ export function RecordRoom() {
   const [gentle, setGentle] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [recordingConsent, setRecordingConsent] = useState(false);
+  const [stage, setStage] = useState<Stage>("telling");
+  /** How many recordings were the story itself; everything after is a clarification. */
+  const storyTurns = useRef(0);
+  const [storyParts, setStoryParts] = useState(0);
   const [typedAnswer, setTypedAnswer] = useState("");
   /** Every decision this sitting, for Hudhud's notebook. */
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -140,7 +158,7 @@ export function RecordRoom() {
     setRecordingConsent(false);
     chirp();
     setPhase("session");
-    void speak(question[lang], lang);
+    void speak(invitation(question)[lang], lang);
   }
 
   async function giveConsent() {
@@ -171,7 +189,8 @@ export function RecordRoom() {
     setThinking(true);
     try {
       const turns = session.current?.turns ?? [];
-      const { decision, source } = live && elder ? await askNext(elder, theme, turns, skipped) : await askNext(practiceElder, theme, turns, skipped);
+      const turnMode = { mode: "clarify" as const, storyTurns: storyTurns.current };
+      const { decision, source } = await askNext(live && elder ? elder : practiceElder, theme, turns, skipped, turnMode);
       setNote(source === "stand-in" ? "Practice question for now — the AI interviewer isn't available right now." : null);
       const q = decision.question;
       setThoughts((list) => [...list, { id: newId(), decision, source }]);
@@ -192,7 +211,7 @@ export function RecordRoom() {
     }
   }
 
-  /** Stops the recording and keeps the answer: the real voice, then its transcript. */
+  /** Stops the recording and keeps it: the real voice, then its transcript. */
   async function saveAnswer() {
     const take = await rec.stop();
     if (!take) return false;
@@ -205,6 +224,7 @@ export function RecordRoom() {
         // and hands back its path, which reaches the database with the turn.
         const { text, audioPath } = await transcribe(take.blob, lang, take.caption, session.current?.id);
         addTurn({ role: "elder", text, lang, clipId, audioPath, durationMs: take.durationMs, at: new Date().toISOString() });
+        setNote(text.trim() ? null : "Hudhud couldn't make out the words in that recording. The voice is saved; try speaking a little closer to the phone.");
       } finally {
         setThinking(false);
       }
@@ -212,6 +232,31 @@ export function RecordRoom() {
       addTurn({ role: "elder", text: "", lang, at: new Date().toISOString() }); // practice: counted, never saved
     }
     return true;
+  }
+
+  /** A part of the story is in: nothing interrupts, the elder can go on or say that's the story. */
+  function countStoryPart() {
+    storyTurns.current += 1;
+    setStoryParts(storyTurns.current);
+    chirp();
+  }
+
+  /** "That's my story": Hudhud reads all of it and asks about what's unclear, if anything. */
+  async function finishStory() {
+    if (thinking) return;
+    try {
+      if (rec.status === "recording" && (await saveAnswer())) countStoryPart();
+      if (storyTurns.current === 0) {
+        setNote("Tap the lamp and tell the story first. Hudhud will listen to all of it.");
+        return;
+      }
+      stopSpeaking();
+      setStage("clarifying");
+      await nextQuestion(false);
+    } catch (err) {
+      console.error("Error finishing the story:", err);
+      setThinking(false);
+    }
   }
 
   async function toggleLamp() {
@@ -224,19 +269,30 @@ export function RecordRoom() {
         await rec.start();
         return;
       }
-      if (await saveAnswer()) await nextQuestion(false);
+      if (!(await saveAnswer())) return;
+      if (stage === "telling") countStoryPart();
+      else await nextQuestion(false);
     } catch (err) {
       console.error("Error in toggleLamp:", err);
       setThinking(false);
     }
   }
 
+  // A very long part is saved on its own, so one recording never grows past what can be sent.
+  useEffect(() => {
+    if (rec.status !== "recording") return;
+    const t = window.setTimeout(() => void toggleLamp(), MAX_PART_MS);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rec.status]);
+
   async function saveTyped() {
     const text = typedAnswer.trim();
     if (!text || thinking) return;
     setTypedAnswer("");
     addTurn({ role: "elder", text, lang, at: new Date().toISOString() });
-    await nextQuestion(false);
+    if (stage === "telling") countStoryPart();
+    else await nextQuestion(false);
   }
 
   async function skip() {
@@ -351,6 +407,14 @@ export function RecordRoom() {
               {question.ur}
             </p>
             <p className="font-display mt-1 text-xl text-moon/75 sm:text-2xl">{question.en}</p>
+            {stage === "telling" && (
+              <p className="mt-4 max-w-lg text-base text-moon/70">
+                <span className="font-urdu block text-lg leading-[2] text-lantern-soft" dir="rtl" lang="ur">
+                  پوری کہانی سنائیے۔ ہدہد بیچ میں نہیں ٹوکے گا۔
+                </span>
+                Tell the whole story in your own words. Hudhud won&apos;t interrupt; he&apos;ll only ask afterwards if something isn&apos;t clear.
+              </p>
+            )}
 
             <button
               type="button"
@@ -369,13 +433,31 @@ export function RecordRoom() {
             </button>
             <p className="mt-4 text-lg font-bold" aria-live="polite">
               {thinking
-                ? "Hudhud is thinking of the next question"
+                ? stage === "telling"
+                  ? "Hudhud is writing down that part of the story"
+                  : "Hudhud is reading the story for anything unclear"
                 : rec.status === "asking"
                   ? "Allow the microphone to begin"
                   : recording
-                    ? "Hudhud is listening. Tap the lamp when you finish."
-                    : "Tap the lamp and start talking"}
+                    ? stage === "telling"
+                      ? "Hudhud is listening. Tap the lamp when you pause or finish."
+                      : "Hudhud is listening. Tap the lamp when you finish."
+                    : stage === "telling"
+                      ? storyParts > 0
+                        ? `${storyParts} ${storyParts === 1 ? "part" : "parts"} of the story saved. Tap the lamp to go on.`
+                        : "Tap the lamp and tell the story"
+                      : "Tap the lamp and answer"}
             </p>
+            {stage === "telling" && storyParts > 0 && !recording && !thinking && (
+              <button
+                type="button"
+                onClick={() => void finishStory()}
+                className="btn-lantern pixel-corners mt-5 flex min-h-[64px] flex-col items-center justify-center px-7 py-2"
+              >
+                <span className="font-urdu text-xl leading-[1.8]" dir="rtl" lang="ur">بس، یہی میری کہانی ہے</span>
+                <span className="text-sm font-extrabold">That&apos;s my story</span>
+              </button>
+            )}
             {recording && rec.caption && (
               <p className="mt-2 max-w-lg text-moon/70" dir="auto">
                 {rec.caption}
@@ -386,14 +468,18 @@ export function RecordRoom() {
               <div className="glass-night mt-4 w-full max-w-md rounded-2xl p-5 text-left text-moon/90">
                 <p className="text-sm">
                   {rec.status === "denied"
-                    ? "The microphone is blocked. You can type their answer below, or click the lock icon next to the address bar to allow the microphone."
-                    : "This browser can't record audio directly. You can type their answer below instead."}
+                    ? "The microphone is blocked. You can type below instead, or click the lock icon next to the address bar to allow the microphone."
+                    : "This browser can't record audio directly. You can type below instead."}
                 </p>
                 <div className="mt-3">
                   <textarea
                     value={typedAnswer}
                     onChange={(e) => setTypedAnswer(e.target.value)}
-                    placeholder={lang === "ur" ? "یہاں جواب لکھیں..." : "Type their answer here..."}
+                    placeholder={
+                      stage === "telling"
+                        ? lang === "ur" ? "یہاں کہانی لکھیں..." : "Type the story here..."
+                        : lang === "ur" ? "یہاں جواب لکھیں..." : "Type their answer here..."
+                    }
                     dir="auto"
                     rows={3}
                     className="w-full rounded-xl border border-white/15 bg-white/5 p-3 text-moon placeholder:text-moon/40 focus:border-lantern focus:outline-none"
@@ -404,15 +490,24 @@ export function RecordRoom() {
                     onClick={() => void saveTyped()}
                     className="btn-lantern pixel-corners mt-2 inline-flex h-10 items-center px-5 text-sm font-bold disabled:opacity-50"
                   >
-                    Save answer and continue
+                    {stage === "telling" ? "Save this part of the story" : "Save answer and continue"}
                   </button>
                 </div>
               </div>
             )}
 
             <div className="mt-10 grid w-full max-w-lg grid-cols-3 gap-3">
-              <ElderAction onClick={() => void speak(question[lang], lang)} icon={<RotateCcw size={26} />} ur="دوبارہ" en="Repeat" />
-              <ElderAction onClick={skip} disabled={thinking} icon={<SkipForward size={26} />} ur="اگلا سوال" en="Skip" />
+              <ElderAction
+                onClick={() => void speak((stage === "telling" ? invitation(question) : question)[lang], lang)}
+                icon={<RotateCcw size={26} />}
+                ur="دوبارہ"
+                en="Repeat"
+              />
+              {stage === "clarifying" ? (
+                <ElderAction onClick={skip} disabled={thinking} icon={<SkipForward size={26} />} ur="معلوم نہیں" en="Don't know" />
+              ) : (
+                <ElderAction onClick={() => void finishStory()} disabled={thinking} icon={<SkipForward size={26} />} ur="کہانی ختم" en="Story done" />
+              )}
               <ElderAction onClick={finish} disabled={thinking} icon={<Square size={22} />} ur="آج کے لیے بس" en="Stop for today" />
             </div>
 
@@ -441,7 +536,7 @@ export function RecordRoom() {
             {live && answers > 0 && session.current ? (
               <>
                 <p className="max-w-sm text-moon/70">
-                  {answers} {answers === 1 ? "answer" : "answers"} saved in {who}&apos;s own voice. Hudhud can turn them into a chapter now.
+                  {answers} {answers === 1 ? "recording" : "recordings"} saved in {who}&apos;s own voice. Hudhud can turn the story into a chapter now.
                 </p>
                 <button
                   type="button"
@@ -468,6 +563,9 @@ export function RecordRoom() {
                     type="button"
                     onClick={() => {
                       session.current = null;
+                      storyTurns.current = 0;
+                      setStoryParts(0);
+                      setStage("telling");
                       setQuestion(themeInfo.firstQuestion);
                       setThoughts([]);
                       setGentle(false);

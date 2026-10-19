@@ -44,7 +44,7 @@ python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activ
 pip install -r requirements-dev.txt
 cp .env.example .env                              # fill in keys; APP_ENV=development
 uvicorn app.main:app --env-file .env --reload --port 8000
-pytest                                            # 41 tests, no keys needed
+pytest                                            # 47 tests, no keys needed
 ```
 
 Then set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`
@@ -53,6 +53,13 @@ and run the frontend. `GET /health` shows which providers are connected.
 ## 2. The agents
 
 **Hudhud decides; the orchestrator runs the team.**
+
+The record screen works story-first: the elder tells the whole story in their
+own words (in as many recorded parts as they like) and nothing interrupts them.
+When they say that's the story, Hudhud reads all of it in `clarify` mode and
+asks only about what a grandchild couldn't follow (who "he" was, where or when,
+a garbled name), one question at a time, at most 3, and wraps up as soon as
+it's clear. The older question-by-question `interview` mode is still there.
 
 ```
           ┌──────────────── POST /api/turn ─────────────────┐
@@ -75,7 +82,10 @@ It also records a trace of every step (agent, outcome, reason, ms) for an
 The prompts ask the model to behave. The agents then check in code that it
 actually did:
 
-- **Interviewer.** Before each call it reads the last answer for grief, 1947
+- **Interviewer.** In `clarify` mode it counts only the answers after the story,
+  stops at 3 clarifications without calling the model, and wraps up instead of
+  guessing when the story has no words in it. In `interview` mode it may not end
+  the sitting before 3 answers unless the elder sounds tired. Before each call it reads the last answer for grief, 1947
   violence or tiredness (English, Roman Urdu, Urdu script) and tells the model.
   `mood: "sensitive"` (from the model or the cue check) turns Hudhud gentle on the
   record screen. Questions asking for phone, CNIC, bank, money or an address,
@@ -96,7 +106,7 @@ actually did:
 
 | Route | Body | Response |
 | --- | --- | --- |
-| `POST /api/turn` | `{ elder, theme, turns, skipped? }` | `InterviewerDecision` + `handoff` + `signals` (what Hudhud noticed) + `trace` |
+| `POST /api/turn` | `{ elder, theme, turns, skipped?, mode?: "clarify" \| "interview", storyTurns? }` | `InterviewerDecision` + `handoff` + `signals` (what Hudhud noticed) + `trace` |
 | `POST /api/chapter` | `{ elder, theme, turns, familySeed }` | `{ chapter, imageUrl?, trace }`: the orchestrated hand-off |
 | `POST /api/illustrate` | `{ chapter: { title, scene?, year?, place? }, familySeed }` | `{ imageUrl?, trace }`: paints a saved chapter again |
 | `POST /api/transcribe` | FormData `{ audio, lang, sessionId? }` | `{ text, audioPath? }`. Gemini, then Whisper as backup; the clip is stored with the caller's token |
@@ -105,7 +115,8 @@ actually did:
 | `GET /health` | none | which providers are connected (no secrets) |
 
 Shapes are in `agents/types.py` and mirrored in `frontend/lib/types.ts`.
-Bodies are capped (JSON 256 KB, audio 20 MB) and every field is clamped. Turns
+Bodies are capped (JSON 512 KB, audio 20 MB) and every field is clamped; one turn
+can hold a whole story (12,000 characters, about ten minutes of speech). Turns
 keep their original `index` so `sourceTurns` survive clamping. There's no
 Vercel 4.5 MB body limit any more, so long answers reach the transcriber.
 
@@ -121,7 +132,7 @@ Vercel 4.5 MB body limit any more, so long answers reach the transcriber.
   day), 60 for share reads. The client IP is the hop our own proxy added to
   `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`), never a value the client wrote.
   In memory, so per instance.
-- Request bodies are limited while they stream in (256 KB JSON, 21 MB audio), so
+- Request bodies are limited while they stream in (512 KB JSON, 21 MB audio), so
   a chunked request with no declared size can't fill memory or disk.
 - Uploaded audio is identified from its own bytes (WebM, Ogg, MP4, WAV, MP3) and
   stored under that type; anything else is refused, whatever the browser claims.

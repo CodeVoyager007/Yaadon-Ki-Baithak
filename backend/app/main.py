@@ -34,7 +34,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Yaadon ki Baithak API", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
-JSON_LIMIT = 256_000
+JSON_LIMIT = 512_000
 AUDIO_LIMIT = 21 * 1024 * 1024  # one 20 MB answer plus the form around it
 TOO_BIG = "That request was too big."
 

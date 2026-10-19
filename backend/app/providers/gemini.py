@@ -17,9 +17,11 @@ from ..http_client import client
 BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 # Every call is bounded so a hung model can't hold a request open.
 TIMEOUT_S = 30.0
+# A whole story told in one go can be ten minutes of audio.
+TRANSCRIBE_TIMEOUT_S = 120.0
 
 
-async def _generate(model: str, body: dict[str, Any]) -> dict[str, Any]:
+async def _generate(model: str, body: dict[str, Any], timeout: float = TIMEOUT_S) -> dict[str, Any]:
     keys = settings().gemini_keys or ((settings().gemini_key,) if settings().gemini_key else ())
     if not keys:
         raise RuntimeError("GEMINI_API_KEY is missing")
@@ -30,7 +32,7 @@ async def _generate(model: str, body: dict[str, Any]) -> dict[str, Any]:
                 f"{BASE}/{model}:generateContent",
                 headers={"x-goog-api-key": key},
                 json=body,
-                timeout=TIMEOUT_S,
+                timeout=timeout,
             )
             if res.status_code == 200:
                 return res.json()
@@ -76,7 +78,7 @@ async def generate_json(system: str, user: str, temperature: float = 0.7) -> Any
 
 
 async def transcribe(audio: bytes, mime_type: str, lang: str) -> str:
-    """Verbatim transcript of one answer in the elder's own voice."""
+    """Verbatim transcript of one recording (an answer, or a whole story) in the elder's own voice."""
     spoken = "Urdu" if lang == "ur" else "English"
     reply = await _generate(
         settings().gemini_model,
@@ -95,6 +97,7 @@ async def transcribe(audio: bytes, mime_type: str, lang: str) -> str:
             ],
             "generationConfig": {"temperature": 0},
         },
+        TRANSCRIBE_TIMEOUT_S,
     )
     return _text(reply).strip()
 

@@ -1,6 +1,6 @@
 import pytest
 
-from agents import MAX_ANSWERS, WRAP_UP_LINE, Bilingual, ElderProfile, illustration_request, parse_chapter, run_interviewer, run_story_writer
+from agents import MAX_ANSWERS, MAX_CLARIFY, WRAP_UP_LINE, Bilingual, ElderProfile, illustration_request, parse_chapter, run_interviewer, run_story_writer
 from agents.guardrails import asks_for_private_info, normalize, sounds_sensitive, sounds_tired
 
 from .conftest import FakeModel, birdy, run, said
@@ -136,3 +136,39 @@ def test_illustrator_paints_the_scene_and_swaps_graphic_ones():
 def test_an_edited_graphic_title_is_never_painted():
     req = illustration_request(Bilingual(en="The riot on our street", ur=""), 1)
     assert "riot" not in req.prompt.split(".")[0]
+
+
+STORY = said("Abba worked for the railway. That August he came home late and said we must leave. He took us to the station.", 1)
+CLEAR = {"action": "wrap_up", "mood": "normal", "question": {"ur": "بہت شکریہ", "en": "Thank you."}, "why": "The story is clear.", "heard": []}
+
+
+def test_clarify_asks_about_a_gap_in_the_story_using_its_own_prompt():
+    gap = {**GOOD, "question": {"ur": "وہ کون سا اسٹیشن تھا؟", "en": "Which station was it?"}, "why": "The station is never named."}
+    model = FakeModel(gap)
+    decision, signals = run(run_interviewer(model, ELDER, "1947", [birdy("Tell us"), STORY], mode="clarify", story_turns=1))
+    assert decision.action == "follow_up" and signals.clarifications == 0
+    assert "most important gap" in model.calls[0][0]
+
+
+def test_clarify_wraps_up_when_the_story_is_clear():
+    decision, _ = run(run_interviewer(FakeModel(CLEAR), ELDER, "1947", [STORY], mode="clarify", story_turns=1))
+    assert decision.action == "wrap_up"
+
+
+def test_clarify_stops_after_the_cap_without_calling_the_model():
+    turns = [STORY] + [t for i in range(MAX_CLARIFY) for t in (birdy(f"who {i}?"), said(f"answer {i}"))]
+    model = FakeModel()
+    decision, signals = run(run_interviewer(model, ELDER, "1947", turns, mode="clarify", story_turns=1))
+    assert decision.action == "wrap_up" and signals.clarifications == MAX_CLARIFY and not model.calls
+
+
+def test_clarify_with_an_unheard_story_wraps_up_instead_of_guessing():
+    model = FakeModel()
+    decision, _ = run(run_interviewer(model, ELDER, "1947", [birdy("Tell us")], mode="clarify", story_turns=1))
+    assert decision.action == "wrap_up" and not model.calls
+
+
+def test_interview_mode_will_not_end_after_one_answer():
+    model = FakeModel(CLEAR, GOOD)
+    decision, _ = run(run_interviewer(model, ELDER, "Free talk", [birdy("Where?"), said("Lahore")]))
+    assert decision.action == "follow_up" and "too early" in model.calls[1][1]

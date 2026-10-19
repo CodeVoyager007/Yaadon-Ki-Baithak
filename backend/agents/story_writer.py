@@ -14,7 +14,7 @@ from typing import Any, Optional
 from .guardrails import as_data, normalize, string_list, text_field
 from .types import Bilingual, Chapter, ElderProfile, JsonModel, ModelReplyError, PullQuote, Turn
 
-MAX_BODY = 12000
+MAX_BODY = 16000
 
 
 def system_prompt(elder: ElderProfile) -> str:
@@ -24,7 +24,9 @@ Rules:
 - First person, in their voice. Keep their exact phrases, idioms and dialect words.
 - Only use what the elder said. Add NO new facts: no names, places, dates, feelings or events they didn't say.
 - If a part is unclear, write [unclear] in its place and list it in "unclear". Never guess.
-- 250 to 500 words when the interview has that much; if it has less, write less. Never pad.
+- The elder usually told the story in one go, then answered a few of Hudhud's clarifying questions. Weave each
+  clarification into the story where it belongs (a name, a place, who someone was), in their words.
+- 250 to 600 words when the story has that much; if it has less, write less. Never pad.
 - Write an Urdu version and an English version. The English is a faithful translation, not a rewrite.
 - "year": only a year the elder actually said, else "". "place": only a place they actually named, else "".
 - "pullQuote": one sentence they said word for word, copied exactly from one Elder line, with that line's number.

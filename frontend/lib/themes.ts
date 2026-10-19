@@ -55,6 +55,12 @@ export const THEMES: { id: Theme; ur: string; scene: SampleChapter["scene"]; blu
 ];
 
 /** Follow-ups used until the interviewer agent is connected. */
+/** Practice clarifications, used when the AI isn't available after a story is told. */
+export const PRACTICE_CLARIFY = [
+  { ur: "اس کہانی میں آپ کے ساتھ اور کون کون تھا؟", en: "Who else was with you in this story?" },
+  { ur: "یہ سب کس شہر میں ہوا تھا؟", en: "Which town did all this happen in?" },
+];
+
 export const PRACTICE_FOLLOW_UPS = [
   { ur: "اس وقت آپ کے ساتھ کون تھا؟", en: "Who was with you then?" },
   { ur: "وہاں کی کوئی خوشبو یاد ہے؟", en: "Do you remember a smell from there?" },

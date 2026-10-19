@@ -15,7 +15,7 @@ from ..http_client import client
 TIMEOUT_S = 45.0
 
 
-async def _run(model: str, body: dict[str, Any]) -> dict[str, Any]:
+async def _run(model: str, body: dict[str, Any], timeout: float = TIMEOUT_S) -> dict[str, Any]:
     s = settings()
     if not s.has_cloudflare:
         raise RuntimeError("Cloudflare keys are missing")
@@ -23,7 +23,7 @@ async def _run(model: str, body: dict[str, Any]) -> dict[str, Any]:
         f"https://api.cloudflare.com/client/v4/accounts/{s.cloudflare_account_id}/ai/run/{model}",
         headers={"Authorization": f"Bearer {s.cloudflare_api_token}"},
         json=body,
-        timeout=TIMEOUT_S,
+        timeout=timeout,
     )
     if res.status_code != 200:
         raise RuntimeError(f"Cloudflare answered {res.status_code}")
@@ -55,5 +55,6 @@ async def transcribe(audio: bytes, lang: str) -> str:
     result = await _run(
         settings().cloudflare_transcribe_model,
         {"audio": base64.b64encode(audio).decode(), "language": "ur" if lang == "ur" else "en", "task": "transcribe"},
+        120.0,  # a whole story can be ten minutes of audio
     )
     return (result.get("text") or "").strip()

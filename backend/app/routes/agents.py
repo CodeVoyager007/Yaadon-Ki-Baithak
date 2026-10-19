@@ -12,7 +12,7 @@ from agents import Orchestrator
 
 from ..config import settings
 from ..errors import not_configured, provider_failed
-from ..inputs import clean_elder, clean_painting_brief, clean_seed, clean_theme, clean_turns, read_json
+from ..inputs import clean_count, clean_elder, clean_painting_brief, clean_seed, clean_theme, clean_turns, read_json
 from ..painting import painter_for
 from ..providers import gemini
 from ..security import require_caller
@@ -31,7 +31,9 @@ def _orchestrator(user_id):
 
 @router.post("/turn")
 async def turn(request: Request):
-    """Body: { elder, theme, turns, skipped? } -> InterviewerDecision + handoff + signals + trace.
+    """Body: { elder, theme, turns, skipped?, mode?, storyTurns? } -> InterviewerDecision + handoff + signals + trace.
+    mode "clarify": the first storyTurns elder turns are the story told in one go;
+    Hudhud asks only about what's unclear in it.
     Every word of the question comes from the model, or from the agent's fixed
     thank-you line at the turn cap."""
     caller = await require_caller(request, "turn")
@@ -40,7 +42,14 @@ async def turn(request: Request):
     body = await read_json(request)
     elder, turns = clean_elder(body.get("elder")), clean_turns(body.get("turns"), allow_empty=True)
     try:
-        out = await _orchestrator(caller.user_id).interview_turn(elder, clean_theme(body.get("theme")), turns, body.get("skipped") is True)
+        out = await _orchestrator(caller.user_id).interview_turn(
+            elder,
+            clean_theme(body.get("theme")),
+            turns,
+            body.get("skipped") is True,
+            "clarify" if body.get("mode") == "clarify" else "interview",
+            clean_count(body.get("storyTurns")),
+        )
     except Exception as err:
         log.error("[api/turn] %s", err)
         raise provider_failed("The interviewer") from None

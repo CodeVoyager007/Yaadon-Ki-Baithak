@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Literal, Optional
 
 from .illustrator import illustration_request
-from .interviewer import Signals, run_interviewer
+from .interviewer import Mode, Signals, run_interviewer
 from .story_writer import run_story_writer
 from .types import Chapter, ElderProfile, IllustrationRequest, InterviewerDecision, JsonModel, TraceStep, Turn
 
@@ -56,13 +56,19 @@ class Orchestrator:
         self.painter = painter
 
     async def interview_turn(
-        self, elder: ElderProfile, theme: str, turns: list[Turn], skipped: bool = False
+        self,
+        elder: ElderProfile,
+        theme: str,
+        turns: list[Turn],
+        skipped: bool = False,
+        mode: Mode = "interview",
+        story_turns: int = 0,
     ) -> TurnOutcome:
         """One turn of the conversation. A wrap-up is returned as a hand-off to the story writer."""
         if not self.text_model:
             return TurnOutcome(None, trace=[TraceStep(agent="orchestrator", outcome="interviewer not configured")])
         start = time.perf_counter()
-        result = await run_interviewer(self.text_model, elder, theme, turns, skipped)
+        result = await run_interviewer(self.text_model, elder, theme, turns, skipped, mode, story_turns)
         if not result:
             return TurnOutcome(None, trace=[TraceStep(agent="interviewer", outcome="no usable question", ms=_ms(start))])
 

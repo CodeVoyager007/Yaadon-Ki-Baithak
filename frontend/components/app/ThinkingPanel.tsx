@@ -70,7 +70,9 @@ export function ThinkingPanel({ thoughts }: { thoughts: Thought[] }) {
           {recent.map((t, i) => (
             <li key={t.id} className={`border-l-2 pl-3 ${i === 0 ? "border-lantern" : "border-white/15 opacity-70"}`}>
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <Badge>{ACTION[t.decision.action]}</Badge>
+                <Badge>
+                  {t.decision.signals?.mode === "clarify" && t.decision.action === "follow_up" ? "Found something unclear" : ACTION[t.decision.action]}
+                </Badge>
                 {t.decision.mood === "sensitive" && <Badge tone="gentle">Gentle: the answer seemed painful</Badge>}
                 {t.decision.signals?.tired && <Badge tone="gentle">Sounds tired</Badge>}
                 {t.decision.signals?.skipped && <Badge>Skipped last question</Badge>}

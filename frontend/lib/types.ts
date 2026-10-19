@@ -38,7 +38,16 @@ export type InterviewerDecision = {
   trace?: TraceStep[];
 };
 
-export type Signals = { answers: number; sensitive: boolean; tired: boolean; skipped: boolean };
+export type Signals = {
+  answers: number;
+  sensitive: boolean;
+  tired: boolean;
+  skipped: boolean;
+  /** "clarify": the elder told the story first; Hudhud only asks about what's unclear. */
+  mode?: "interview" | "clarify";
+  clarifications?: number;
+  told?: boolean;
+};
 
 export type Chapter = {
   title: { ur: string; en: string };

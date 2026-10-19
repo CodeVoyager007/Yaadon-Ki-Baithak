@@ -16,7 +16,7 @@ import type { Chapter, ElderProfile, InterviewerDecision, TraceStep, Turn as Wir
 import type { Elder, Theme } from "./book-store";
 import { elderLabel } from "./book-store";
 import type { Turn } from "./chapter-store";
-import { PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
+import { PRACTICE_CLARIFY, PRACTICE_FOLLOW_UPS, THEMES } from "./themes";
 import { hasSupabase, supabaseBrowser } from "./supabase/client";
 
 export type Source = "ai" | "stand-in";
@@ -73,10 +73,42 @@ async function post<T>(path: string, body: unknown): Promise<T | null> {
   }
 }
 
-/** POST /api/turn  { elder, theme, turns, skipped } -> InterviewerDecision */
-export async function askNext(elder: Elder, theme: Theme, turns: Turn[], skipped = false) {
-  const ai = await post<InterviewerDecision>("/api/turn", { elder: profile(elder), theme, turns: plain(turns), skipped });
+export type TurnMode = { mode: "interview" | "clarify"; storyTurns: number };
+
+/**
+ * POST /api/turn  { elder, theme, turns, skipped, mode, storyTurns } -> InterviewerDecision.
+ * In "clarify" mode the first storyTurns answers are the story told in one go and
+ * Hudhud asks only about what's unclear in it.
+ */
+export async function askNext(elder: Elder, theme: Theme, turns: Turn[], skipped = false, turnMode: TurnMode = { mode: "interview", storyTurns: 0 }) {
+  const ai = await post<InterviewerDecision>("/api/turn", { elder: profile(elder), theme, turns: plain(turns), skipped, ...turnMode });
   if (ai) return { decision: ai, source: "ai" as Source };
+
+  if (turnMode.mode === "clarify") {
+    const asked = Math.max(0, turns.filter((t) => t.role === "elder").length - turnMode.storyTurns);
+    if (asked >= PRACTICE_CLARIFY.length) {
+      return {
+        source: "stand-in" as Source,
+        decision: {
+          action: "wrap_up",
+          question: { ur: "بہت شکریہ، یہ کہانی بہت قیمتی ہے", en: "Thank you. This story is precious." },
+          mood: "normal",
+          why: "Practice run: two clarifying questions asked.",
+          heard: [],
+        } satisfies InterviewerDecision,
+      };
+    }
+    return {
+      source: "stand-in" as Source,
+      decision: {
+        action: "follow_up",
+        question: PRACTICE_CLARIFY[asked],
+        mood: "normal",
+        why: "Practice question. The AI would ask about what was actually unclear in the story.",
+        heard: [],
+      } satisfies InterviewerDecision,
+    };
+  }
 
   const answers = turns.filter((t) => t.role === "elder").length;
   const asked = turns.filter((t) => t.role === "birdy").length;

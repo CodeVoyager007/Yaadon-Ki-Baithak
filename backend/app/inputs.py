@@ -16,8 +16,9 @@ from agents import Bilingual, Chapter, ElderProfile, Turn
 
 from .errors import bad_body
 
-MAX_TEXT = 2000
-MAX_JSON_BYTES = 256_000
+# One turn can be a whole story told in one go (about ten minutes of speech).
+MAX_TEXT = 12_000
+MAX_JSON_BYTES = 512_000
 
 
 async def read_json(request: Request) -> dict[str, Any]:
@@ -102,6 +103,12 @@ def clean_painting_brief(raw: Any) -> Chapter:
         year=year if re.fullmatch(r"1[89]\d\d|20\d\d", year) else None,
         place=_short(c.get("place"), 60) or None,
     )
+
+
+def clean_count(raw: Any, limit: int = 40) -> int:
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        return 0
+    return max(0, min(raw, limit))
 
 
 def clean_seed(raw: Any) -> int:

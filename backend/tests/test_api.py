@@ -65,7 +65,18 @@ def test_turn_returns_the_decision_with_handoff_and_trace(env, api, monkeypatch)
     assert body["action"] == "follow_up" and body["mood"] == "normal" and body["handoff"] is None
     assert body["question"]["en"] == GOOD["question"]["en"]
     assert body["trace"][0]["agent"] == "interviewer"
-    assert body["signals"] == {"answers": 1, "sensitive": False, "tired": False, "skipped": False}
+    assert body["signals"] == {
+        "answers": 1, "sensitive": False, "tired": False, "skipped": False, "mode": "interview", "clarifications": 0, "told": True,
+    }
+
+
+def test_turn_in_clarify_mode_counts_only_answers_after_the_story(env, api, monkeypatch):
+    env(GEMINI_API_KEY="k")
+    monkeypatch.setattr(gemini, "generate_json", fake_model(GOOD))
+    story = {"role": "elder", "text": "Abba worked for the railway and we lived near the station.", "lang": "en", "index": 1}
+    res = api.post("/api/turn", json={**BODY, "turns": [story], "mode": "clarify", "storyTurns": 1})
+    assert res.status_code == 200 and res.json()["signals"]["mode"] == "clarify"
+    assert res.json()["signals"]["clarifications"] == 0
 
 
 def test_chapter_runs_the_pipeline_and_speaks_camel_case(env, api, monkeypatch):
