@@ -189,19 +189,23 @@ body {
 .anim-hop { animation: hop 0.9s steps(4) infinite; }
 .anim-drive { animation: drive 38s linear infinite; }
 
-/* A sky lantern: rises from the lower corner, drifts sideways, glows the whole way. */
+/* A sky lantern: rises from below, drifting sideways (--lantern-drift), and starts again. */
 @keyframes lantern-fly {
-  0% { transform: translate3d(0, 0, 0) scale(0.7); opacity: 0; }
-  8% { opacity: 1; }
-  35% { transform: translate3d(-6vw, -30vh, 0) scale(1); }
-  70% { transform: translate3d(-14vw, -62vh, 0) scale(1.05); }
-  100% { transform: translate3d(-24vw, -105vh, 0) scale(1.1); opacity: 0; }
+  0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0; }
+  7% { opacity: 1; }
+  35% { transform: translate3d(calc(var(--lantern-drift, -18vw) * 0.3), -32vh, 0) scale(0.95); }
+  70% { transform: translate3d(calc(var(--lantern-drift, -18vw) * 0.65), -66vh, 0) scale(0.9); }
+  88% { opacity: 0.9; }
+  100% { transform: translate3d(var(--lantern-drift, -18vw), -108vh, 0) scale(0.8); opacity: 0; }
 }
-@keyframes lantern-glow {
-  0%, 100% { filter: drop-shadow(0 0 14px rgba(255, 214, 102, 0.9)) drop-shadow(0 0 34px rgba(242, 169, 59, 0.55)); }
-  50% { filter: drop-shadow(0 0 22px rgba(255, 230, 150, 1)) drop-shadow(0 0 52px rgba(242, 169, 59, 0.75)); }
+/* The halo breathes (opacity only: cheap, unlike animating a drop-shadow on every lantern). */
+@keyframes lantern-halo {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
 }
-.anim-lantern-fly { animation: lantern-fly linear forwards, lantern-glow 2.4s ease-in-out infinite; }
+.anim-lantern-fly { animation-name: lantern-fly; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform, opacity; }
+.anim-lantern-halo { animation: lantern-halo 2.6s ease-in-out infinite; }
+.anim-lantern-sway { animation: lantern-sway 4.5s ease-in-out infinite; transform-origin: 50% 0%; }
 
 /*
  * Scroll-driven scenes on the home page. They follow the reader's scroll
@@ -275,7 +279,7 @@ html:has(.home-sky) { overscroll-behavior-y: none; background: #0a0a24; }
 .reveal.is-in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
-  .anim-lantern-fly { animation: none; opacity: 1; }
+  .anim-lantern-fly, .anim-lantern-halo, .anim-lantern-sway { animation: none; opacity: 1; }
 }
 @keyframes drive {
   0% { transform: translateX(-80px); }

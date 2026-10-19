@@ -12,14 +12,14 @@ export function KarachiShowcase() {
   return (
     <section className="relative isolate overflow-clip px-5 py-10 sm:py-12" aria-label="Night painting showcase">
       {/* Sky lanterns floating on the left side */}
-      <SkyLantern delay={0.2} duration={13} className="bottom-[10%] left-[3vw]" />
-      <SkyLantern delay={2.5} duration={12} className="bottom-[4%] left-[12vw]" />
-      <SkyLantern delay={5.0} duration={14} className="bottom-[16%] left-[6vw]" />
+      <SkyLantern delay={-4} duration={16} size={1.1} drift={8} className="bottom-[6%] left-[3vw]" />
+      <SkyLantern delay={-10} duration={20} size={0.6} drift={-6} far className="bottom-[2%] left-[13vw]" />
+      <SkyLantern delay={-1} duration={18} size={0.8} drift={10} className="bottom-[14%] left-[7vw]" />
 
       {/* Sky lanterns floating on the right side */}
-      <SkyLantern delay={1.2} duration={12} className="bottom-[8%] right-[4vw]" />
-      <SkyLantern delay={3.8} duration={13} className="bottom-[2%] right-[14vw]" />
-      <SkyLantern delay={6.2} duration={11} className="bottom-[18%] right-[8vw]" />
+      <SkyLantern delay={-7} duration={17} size={1.05} drift={-12} className="bottom-[8%] right-[4vw]" />
+      <SkyLantern delay={-13} duration={21} size={0.55} drift={6} far className="bottom-[3%] right-[14vw]" />
+      <SkyLantern delay={-2} duration={15} size={0.8} drift={-8} className="bottom-[16%] right-[9vw]" />
 
       <div className="relative z-10 mx-auto max-w-5xl">
         <div className="sd-focus mb-8 text-center">

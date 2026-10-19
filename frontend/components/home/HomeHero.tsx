@@ -46,12 +46,16 @@ export function HomeHero() {
           <Diary />
         </div>
       </div>
-      {/* Flying Sky Lanterns on both sides */}
-      <SkyLantern delay={0.5} duration={11} className="bottom-[6vh] right-[8vw]" />
-      <SkyLantern delay={1.8} duration={13} className="bottom-[4vh] left-[6vw]" />
-      <SkyLantern delay={3.2} duration={13} className="bottom-[3vh] right-[24vw]" />
-      <SkyLantern delay={4.6} duration={12} className="bottom-[7vh] left-[18vw]" />
-      <SkyLantern delay={6.5} duration={12} className="bottom-[8vh] right-[54vw]" />
+      {/* Sky lanterns rising all the time, near and far; negative delays start some mid-flight */}
+      <SkyLantern delay={-9} duration={16} size={1.15} drift={-14} className="bottom-[2vh] left-[5vw]" />
+      <SkyLantern delay={-3} duration={18} size={0.85} drift={10} className="bottom-[4vh] left-[22vw]" />
+      <SkyLantern delay={-13} duration={22} size={0.55} drift={-8} far className="bottom-[6vh] left-[38vw]" />
+      <SkyLantern delay={-6} duration={17} size={1} drift={-16} className="bottom-[1vh] right-[30vw]" />
+      <SkyLantern delay={-1} duration={20} size={0.6} drift={12} far className="bottom-[5vh] right-[44vw]" />
+      <SkyLantern delay={-11} duration={15} size={1.2} drift={-20} className="bottom-[3vh] right-[6vw]" />
+      <SkyLantern delay={-16} duration={24} size={0.5} drift={6} far className="bottom-[8vh] right-[18vw]" />
+      <SkyLantern delay={2} duration={19} size={0.75} drift={-10} className="bottom-[2vh] left-[50vw]" />
+      <SkyLantern delay={-19} duration={23} size={0.45} drift={-6} far className="bottom-[7vh] left-[12vw]" />
     </section>
   );
 }

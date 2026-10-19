@@ -147,9 +147,13 @@ export function IntroFilm() {
       {/* Flying lanterns on the gate: the story's bright beginning */}
       {phase === "gate" && (
         <>
-          <SkyLantern delay={0.4} duration={9} className="bottom-[4vh] right-[14vw]" />
-          <SkyLantern delay={2.4} duration={11} className="bottom-[2vh] right-[42vw]" />
-          <SkyLantern delay={4.6} duration={10} className="bottom-[6vh] right-[68vw]" />
+          <SkyLantern delay={-5} duration={14} size={1.15} drift={-12} className="bottom-[2vh] right-[10vw]" />
+          <SkyLantern delay={-1} duration={16} size={0.8} drift={10} className="bottom-[4vh] right-[30vw]" />
+          <SkyLantern delay={-9} duration={20} size={0.5} drift={-6} far className="bottom-[6vh] right-[48vw]" />
+          <SkyLantern delay={0.5} duration={15} size={1} drift={-14} className="bottom-[1vh] left-[12vw]" />
+          <SkyLantern delay={-12} duration={22} size={0.55} drift={8} far className="bottom-[5vh] left-[30vw]" />
+          <SkyLantern delay={-7} duration={17} size={0.7} drift={12} className="bottom-[3vh] left-[46vw]" />
+          <SkyLantern delay={-15} duration={24} size={0.45} drift={-8} far className="bottom-[7vh] right-[64vw]" />
         </>
       )}
 
