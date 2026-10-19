@@ -38,6 +38,7 @@ pyproject.toml
 uv.lock
 /backend/main.py
 /backend/hello.py
+/backend/src/
 
 # Editors and OS
 .vscode/
