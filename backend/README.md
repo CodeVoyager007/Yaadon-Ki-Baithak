@@ -184,7 +184,13 @@ errors are logged server-side only and never sent to the client.
 
 ## 6. Deploy
 
-**Recommended: Hugging Face Spaces (Docker, free, no card).**
+**Recommended: Render (free, no card).** New → Web Service → connect the GitHub repo →
+Root Directory `backend`, Language **Docker**, Instance type **Free**, Health Check Path
+`/health`, and the same environment variables as below (Render sets `PORT` itself). The free
+plan sleeps after 15 minutes idle and takes about 50 s to wake; the frontend pings `/health`
+when the site opens so it's awake by the time anyone records.
+
+**Alternative: Hugging Face Spaces (Docker).** New accounts may need a paid plan for Docker Spaces.
 1. huggingface.co → New Space → SDK **Docker** → blank → create (e.g. `baithak-api`).
 2. Space → Settings → *Variables and secrets*: add every key from `.env.example`
    as a **secret**. Leave `APP_ENV` unset (production), and set
@@ -200,10 +206,7 @@ errors are logged server-side only and never sent to the client.
 
 Free Spaces sleep after about 48 h without traffic. Open `/health` an hour before the demo.
 
-**Alternative: Render.** New Web Service → this repo → Root Directory
-`backend` → Runtime Docker → same env vars. The free plan sleeps after 15 minutes
-idle and takes about 50 s to wake, which is risky in a live demo unless you open
-`/health` just before.
+
 
 ## 7. Database
 

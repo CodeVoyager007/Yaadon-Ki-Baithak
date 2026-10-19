@@ -125,7 +125,7 @@ the browser never sees one.
 ## Tech stack
 
 - **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Motion. Hosted on Vercel.
-- **Backend:** Python 3.11+, FastAPI, httpx, Pydantic. Docker on Hugging Face Spaces.
+- **Backend:** Python 3.11+, FastAPI, httpx, Pydantic. Docker on Render.
 - **AI:** Google Gemini API, Cloudflare Workers AI.
 - **Data:** Supabase (Auth, Postgres with row level security on every table, private storage).
 - **Tooling:** uv (Python), npm workspaces, pytest.
@@ -184,7 +184,7 @@ cd backend && uv run pytest     # 68 tests: agents, page setter, orchestrator, H
 npm run build                   # frontend production build, from the repo root
 ```
 
-**5. Deploy:** backend to Hugging Face Spaces ([backend/README.md §6](backend/README.md#6-deploy)),
+**5. Deploy:** backend to Render ([backend/README.md §6](backend/README.md#6-deploy)),
 frontend to Vercel with Root Directory `frontend` and the four `NEXT_PUBLIC_` variables, then
 add the Vercel URL to the backend's `ALLOWED_ORIGINS` and to Supabase's Auth URL settings.
 
