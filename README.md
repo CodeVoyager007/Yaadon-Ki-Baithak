@@ -219,9 +219,9 @@ add the Vercel URL to the backend's `ALLOWED_ORIGINS` and to Supabase's Auth URL
 
 | Member | Role | What they built |
 | --- | --- | --- |
-| **Ayesha Mughal** | Team lead, frontend, UI/UX, AI agents | The whole interface and design system (home, recording room, storybook reader with page turns, bookshelf, PDF, sharing) and the AI agents: Hudhud, the story writer, the page setter, the art director, the illustrator and the orchestrator |
-| **Faria** | Backend developer | The FastAPI backend: routes, authentication, rate limits, provider clients and storage |
-| **Humema Israr** | Documentation and presenter | Documentation, the demo video and the presentation |
+| **Humema Israr** | Team lead, documentation | Led the team; the documentation, the demo video and the presentation |
+| **Ayesha Mughal** | Frontend, UI/UX, AI agent developer | The whole interface and design system (home, recording room, storybook reader with page turns, bookshelf, PDF, sharing) and the AI agents: Hudhud, the story writer, the page setter, the art director, the illustrator and the orchestrator |
+| **Faria** | Backend, authentication, researcher | The FastAPI backend: routes, authentication (Supabase sign-in, token checks), rate limits, provider clients and storage; research |
 
 **Development tools:** AI coding assistants were used during development. All code was
 reviewed and tested by the team (68 automated backend tests, plus manual testing of every flow).

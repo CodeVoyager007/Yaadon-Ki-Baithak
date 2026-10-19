@@ -44,9 +44,9 @@ See the root [README](../README.md#structure).
 
 | Area | Owner |
 | --- | --- |
+| Team lead, documentation (`docs/`) | Humema |
 | Frontend, UI/UX and the AI agents (`frontend/`, `backend/agents`) | Ayesha |
-| Backend (`backend/app`, `backend/supabase/`) | Faria |
-| Documentation, demo and presentation (`docs/`) | Humema |
+| Backend, authentication, research (`backend/app`, `backend/supabase/`) | Faria |
 
 ## Rules
 
