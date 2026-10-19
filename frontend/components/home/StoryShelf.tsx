@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import { ChapterCard } from "@/components/stories/ChapterCard";
@@ -7,7 +8,7 @@ import { SAMPLE_CHAPTERS } from "@/lib/samples";
 
 const HEADING = "The stories Nani told at bedtime";
 const BLURB =
-  "Umro Ayyar, Ali Baba, Gul Bakawali. Every family tells them a little differently, and that version deserves to be kept. These sample chapters show the format; your book will hold your own family's voices.";
+  "Umro Ayyar, Ali Baba, Gul Bakawali. Every family tells them a little differently, and that version deserves to be kept. Open any of these sample storybooks to see the format; your book will hold your own family's voices.";
 
 export function StoryShelf() {
   return (
@@ -52,7 +53,9 @@ function StoryShelfClassic() {
       >
         {SAMPLE_CHAPTERS.map((c, i) => (
           <div key={c.slug} className="sd-fan shrink-0" style={{ "--i": i, "--tilt": i % 2 ? 5 : -5 } as React.CSSProperties}>
-            <ChapterCard chapter={c} className="w-[300px] sm:w-[340px]" />
+            <Link href={`/stories/${c.slug}`} aria-label={`Open the storybook: ${c.title}`} className="block rounded-[28px] transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-lantern">
+              <ChapterCard chapter={c} className="w-[300px] sm:w-[340px]" />
+            </Link>
           </div>
         ))}
       </div>

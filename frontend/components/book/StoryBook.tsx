@@ -118,7 +118,7 @@ export function StoryBook({ stored, elder, family }: { stored: StoredChapter; el
             Told by {who}
             {date ? `, ${date}` : ""}
           </p>
-          <p className="mt-1 text-xs text-[#7a5a3a]">{voiceLength(turns)} of their real voice inside</p>
+          {turns.some((t) => t.durationMs) && <p className="mt-1 text-xs text-[#7a5a3a]">{voiceLength(turns)} of their real voice inside</p>}
         </div>
       </div>
     </div>
