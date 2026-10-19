@@ -7,7 +7,7 @@ Built for the **NYLP AI Hackathon 2026**: *Build AI for Real-World Impact*.
 
 | | |
 | --- | --- |
-| **Live app** | _add the Vercel URL here_ |
+| **Live app** | https://yaadon-ki-baithak.vercel.app |
 | **Demo video** | _add the video link here_ |
 | **Repository** | https://github.com/CodeVoyager007/Yaadon-Ki-Baithak |
 
