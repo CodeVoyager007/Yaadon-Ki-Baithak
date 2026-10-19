@@ -124,7 +124,7 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxxx
 
 ```bash
 cd backend
-python -m app.check
+uv run python -m app.check
 ```
 
 You want to see `ok Supabase storage buckets ready` and `ok Database has storybook pages`.

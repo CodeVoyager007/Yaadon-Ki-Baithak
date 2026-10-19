@@ -42,16 +42,18 @@ backend/
 
 ```bash
 cd backend
-python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements-dev.txt
+uv init                                           # first time only; generated files are git-ignored
+uv venv
+uv add -r requirements.txt
+uv add --dev pytest
 cp .env.example .env                              # fill in keys; APP_ENV=development
-uvicorn app.main:app --env-file .env --reload --port 8000
-pytest                                            # 53 tests, no keys needed
+uv run uvicorn app.main:app --env-file .env --reload --port 8000
+uv run pytest                                     # 68 tests, no keys needed
 ```
 
 To check your keys end to end (one tiny real call each, a test painting saved to
 `backend/paint-check.jpg`, and the Supabase buckets and migrations), run
-`python -m app.check`. It never prints a key.
+`uv run python -m app.check`. It never prints a key.
 
 Then set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`
 and run the frontend. `GET /health` shows which providers are connected.

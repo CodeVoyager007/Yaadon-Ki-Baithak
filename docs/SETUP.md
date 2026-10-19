@@ -31,7 +31,7 @@ AI and service-role keys exist only on the backend. Nothing secret ever gets a `
 ## Verify
 
 ```bash
-cd backend && pytest   # agents, orchestrator, HTTP
+cd backend && uv run pytest   # agents, orchestrator, HTTP
 npm run build          # from the repo root; generates frontend/next-env.d.ts
 npm run typecheck
 ```
@@ -44,9 +44,9 @@ See the root [README](../README.md#structure).
 
 | Area | Owner |
 | --- | --- |
-| AI agents and backend (`backend/agents`, `backend/app`) | Ayesha |
-| Frontend and design (`frontend/`, `frontend/DESIGN.md`) | Faria |
-| Database and pitch (`backend/supabase/`) | Humema |
+| Frontend, UI/UX and the AI agents (`frontend/`, `backend/agents`) | Ayesha |
+| Backend (`backend/app`, `backend/supabase/`) | Faria |
+| Documentation, demo and presentation (`docs/`) | Humema |
 
 ## Rules
 
