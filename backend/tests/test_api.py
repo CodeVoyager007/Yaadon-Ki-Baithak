@@ -233,3 +233,33 @@ def test_illustrate_paints_from_a_clamped_brief_only(env, api, monkeypatch):
     assert res.status_code == 200 and res.json()["imageUrl"].startswith("data:image/png")
     assert "s" * 301 not in seen["prompt"] and "around soon" not in seen["prompt"] and "x" * 50 not in seen["prompt"]
     assert api.post("/api/illustrate", json={"chapter": {"title": {}}}).status_code == 400
+
+
+
+def test_painter_sends_only_flux_inputs_and_retries_a_rejected_request(env, monkeypatch):
+    import asyncio
+
+    from agents import illustration_request, Bilingual
+    from app.providers import cloudflare
+
+    env(CLOUDFLARE_ACCOUNT_ID="a", CLOUDFLARE_API_TOKEN="t")
+    bodies = []
+
+    async def fake_run(model, body, timeout=45.0):
+        bodies.append(body)
+        if len(bodies) == 1:
+            raise cloudflare.CloudflareError(400, "Input validation error")
+        return {"image": "/9j/4AAQ"}  # base64 of a JPEG header
+
+    monkeypatch.setattr(cloudflare, "_run", fake_run)
+    data = asyncio.run(cloudflare.paint(illustration_request(Bilingual(en="Tea"), 7, "a teapot")))
+    assert set(bodies[0]) == {"prompt", "steps", "seed"} and bodies[0]["steps"] <= 8
+    assert bodies[1] == {"prompt": bodies[0]["prompt"]}
+    assert data[:3] == b"\xff\xd8\xff"
+
+
+def test_paintings_are_labelled_by_their_own_bytes():
+    from app.painting import image_type
+
+    assert image_type(b"\xff\xd8\xff\xe0rest") == ("image/jpeg", "jpg")
+    assert image_type(b"\x89PNG\r\n") == ("image/png", "png")

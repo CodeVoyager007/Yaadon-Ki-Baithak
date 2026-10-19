@@ -135,13 +135,17 @@ class Orchestrator:
             for i, scene in enumerate(scenes)
         ]
         gate = asyncio.Semaphore(PAINT_AT_ONCE)
+        problems: list[str] = []
 
         async def paint_one(req: IllustrationRequest) -> Optional[str]:
             async with gate:
                 try:
                     return await asyncio.wait_for(self.painter(req), timeout=PAINT_TIMEOUT_S)
-                except Exception:
-                    return None
+                except asyncio.TimeoutError:
+                    problems.append(f"timed out after {PAINT_TIMEOUT_S} s")
+                except Exception as err:
+                    problems.append(str(err)[:200] or type(err).__name__)
+                return None
 
         start = time.perf_counter()
         urls = list(await asyncio.gather(*(paint_one(r) for r in requests)))
@@ -156,5 +160,9 @@ class Orchestrator:
                 )
             )
         else:
-            trace.append(TraceStep(agent="illustrator", outcome="failed; book kept with theme pictures", ms=_ms(start)))
+            trace.append(
+                TraceStep(agent="illustrator", outcome="failed; book kept with theme pictures", detail=problems[0] if problems else "", ms=_ms(start))
+            )
+        if done and problems:
+            trace[-1].detail = f"{trace[-1].detail}. {len(problems)} failed: {problems[0]}"
         return urls

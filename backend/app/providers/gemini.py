@@ -16,7 +16,8 @@ from ..http_client import client
 
 BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 # Every call is bounded so a hung model can't hold a request open.
-TIMEOUT_S = 30.0
+# Writing a whole picture book (several pages in two languages) can take Gemini a minute.
+TIMEOUT_S = 75.0
 # A whole story told in one go can be ten minutes of audio.
 TRANSCRIBE_TIMEOUT_S = 120.0
 

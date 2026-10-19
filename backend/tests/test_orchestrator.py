@@ -85,3 +85,12 @@ def test_every_page_is_painted_and_one_failure_keeps_the_rest():
     assert len({r.seed for r in painted}) == 3  # each page its own composition, same family style
     assert painted[0].width == 768 and painted[0].height == 576
     assert out.trace[-1].outcome == "painted 2 of 3 pages"
+
+
+def test_a_failed_book_says_why():
+    async def broken(_req):
+        raise RuntimeError("Cloudflare answered 401: Authentication error")
+
+    out = run(Orchestrator(FakeModel(BOOK), broken).write_chapter(ELDER, "Free talk", TURNS, 1))
+    assert out.page_images == [None, None, None]
+    assert out.trace[-1].detail == "Cloudflare answered 401: Authentication error"

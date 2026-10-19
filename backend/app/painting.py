@@ -33,9 +33,19 @@ async def _store(user_id: Optional[str], png: bytes) -> Optional[str]:
     family_id = await _family_of(admin, user_id) if admin and user_id else None
     if not admin or not family_id:
         return None
-    path = f"{family_id}/chapter-{uuid.uuid4()}.png"
-    await admin.upload("images", path, png, "image/png")
+    mime, ext = image_type(png)
+    path = f"{family_id}/chapter-{uuid.uuid4()}.{ext}"
+    await admin.upload("images", path, png, mime)
     return await admin.signed_url("images", path, SIGN_SECONDS)
+
+
+def image_type(data: bytes) -> tuple[str, str]:
+    """FLUX answers with JPEG; label the file by its own bytes, not by assumption."""
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg", "jpg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", "webp"
+    return "image/png", "png"
 
 
 def painter_for(user_id: Optional[str]):
@@ -48,6 +58,6 @@ def painter_for(user_id: Optional[str]):
         except Exception as err:  # storage hiccup: still show the painting
             log.warning("painting storage failed: %s", err)
             stored = None
-        return stored or f"data:image/png;base64,{base64.b64encode(png).decode()}"
+        return stored or f"data:{image_type(png)[0]};base64,{base64.b64encode(png).decode()}"
 
     return paint

@@ -47,6 +47,9 @@ uv.lock
 Thumbs.db
 desktop.ini
 
+# Output of `python -m app.check`
+backend/paint-check.*
+
 # Logs
 *.log
 npm-debug.log*

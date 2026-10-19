@@ -49,7 +49,8 @@ export default function ChapterPage() {
         setStored(next);
         setPaintNote(`Hudhud painted ${fresh.filter(Boolean).length} new pictures for this book!`);
       } else {
-        setPaintNote(resting);
+        const why = res.trace?.find((t) => t.agent === "illustrator" || t.agent === "orchestrator")?.detail;
+        setPaintNote(why ? `${resting} (${why})` : resting);
       }
     } catch {
       setPaintNote(resting);

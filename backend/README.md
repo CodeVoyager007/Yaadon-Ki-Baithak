@@ -44,8 +44,12 @@ python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activ
 pip install -r requirements-dev.txt
 cp .env.example .env                              # fill in keys; APP_ENV=development
 uvicorn app.main:app --env-file .env --reload --port 8000
-pytest                                            # 50 tests, no keys needed
+pytest                                            # 53 tests, no keys needed
 ```
+
+To check your keys end to end (one tiny real call each, a test painting saved to
+`backend/paint-check.jpg`, and the Supabase buckets and migrations), run
+`python -m app.check`. It never prints a key.
 
 Then set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`
 and run the frontend. `GET /health` shows which providers are connected.
