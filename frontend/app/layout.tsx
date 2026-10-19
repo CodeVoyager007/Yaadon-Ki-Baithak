@@ -8,6 +8,7 @@ import "@fontsource-variable/caveat/index.css";
 import "./globals.css";
 import { SoundProvider } from "@/components/sound/SoundProvider";
 import { PixelSparkles } from "@/components/effects/PixelSparkles";
+import { WakeBackend } from "@/components/app/WakeBackend";
 
 const description =
   "Hudhud sits with your grandparents, asks gentle questions in their own language, and turns their memories into an illustrated family storybook.";
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SoundProvider>
           {children}
           <PixelSparkles />
+          <WakeBackend />
         </SoundProvider>
       </body>
     </html>
